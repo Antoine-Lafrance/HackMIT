@@ -12,17 +12,29 @@
     "lint": "eslint src/**/*.ts"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.0.0"
+    "@modelcontextprotocol/sdk": "^1.18.0",
+    "@supabase/supabase-js": "^2.57.4",
+    "@tensorflow/tfjs-node": "^4.22.0",
+    "canvas": "^3.2.0",
+    "dotenv": "^16.4.5",
+    "face-api.js": "^0.22.2",
+    "sharp": "^0.33.5"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
-    "tsx": "^4.0.0",
-    "typescript": "^5.0.0",
-    "eslint": "^8.0.0",
+    "@types/sharp": "^0.32.0",
     "@typescript-eslint/eslint-plugin": "^6.0.0",
-    "@typescript-eslint/parser": "^6.0.0"
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
   },
-  "keywords": ["mcp", "ai", "dementia", "healthcare"],
+  "keywords": [
+    "mcp",
+    "ai",
+    "dementia",
+    "healthcare"
+  ],
   "author": "Your Team",
   "license": "MIT"
 }

@@ -11,6 +11,7 @@ import logging
 from typing import Dict, List, Any, Optional
 from dataclasses import dataclass
 from dotenv import load_dotenv
+from requests import get, post
 import modal
 from anthropic import Anthropic
 from fastapi import File, UploadFile
@@ -51,7 +52,9 @@ class MinimalistAgent:
             api_key=config.anthropic_api_key,
         )
         self.mcp_sessions: Dict[str, Any] = {}
-        self.available_tools = []
+        self.available_tools = get("https://antlaf6--mcp-list-tools-dev.modal.run")
+
+        print("yoyooyo", self.available_tools)
 
     async def initialize_mcp_tools(
         self, mcp_servers: Optional[List[Dict[str, Any]]] = None

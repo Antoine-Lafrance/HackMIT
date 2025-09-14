@@ -591,6 +591,16 @@ location_tool = Tool(
     },
 )
 
+list_tools_tool = Tool(
+    name="list_tools",
+    description="List all available tools with their descriptions, arguments, and Modal endpoint URLs",
+    inputSchema={
+        "type": "object",
+        "properties": {},
+        "required": [],
+    },
+)
+
 # Tool handlers - contains the logic for each tool
 
 
@@ -677,6 +687,107 @@ async def handle_location(args: Dict[str, Any]) -> CallToolResult:
     )
 
 
+async def handle_list_tools_info(args: Dict[str, Any]) -> CallToolResult:
+    """Handle list tools info requests"""
+    logger.info("Tools list info requested")
+
+    # Define the base Modal URL (you might want to make this configurable)
+    modal_base_url = "https://antoinedoyen--dementia-aid-mcp-server-mcp-"
+
+    tools_info = [
+        {
+            "name": "ping",
+            "description": "Simple ping tool to test MCP connection",
+            "modal_endpoint": f"{modal_base_url}ping.modal.run",
+            "method": "POST",
+            "arguments": {
+                "message": {
+                    "type": "string",
+                    "description": "Message to echo back",
+                    "required": False,
+                    "default": "Hello from MCP!"
+                }
+            }
+        },
+        {
+            "name": "recognize_face",
+            "description": "Identify a person from camera input using facial recognition. If person not found and name/relationship provided, adds new person to database.",
+            "modal_endpoint": f"{modal_base_url}face-recognition.modal.run",
+            "method": "POST",
+            "arguments": {
+                "image_data": {
+                    "type": "string",
+                    "description": "Base64 encoded image data",
+                    "required": True
+                },
+                "person_name": {
+                    "type": "string",
+                    "description": "Name of the person (optional - if provided, will be used for new person creation)",
+                    "required": False
+                },
+                "person_relationship": {
+                    "type": "string",
+                    "description": "Relationship to the person (optional - if provided, will be used for new person creation)",
+                    "required": False
+                }
+            }
+        },
+        {
+            "name": "manage_timer",
+            "description": "Timer management for time-sensitive events",
+            "modal_endpoint": f"{modal_base_url}timer.modal.run",
+            "method": "POST",
+            "arguments": {
+                "action": {
+                    "type": "string",
+                    "enum": ["set"],
+                    "description": "Timer action",
+                    "required": True
+                },
+                "duration_minutes": {
+                    "type": "number",
+                    "description": "Duration in minutes",
+                    "required": False
+                }
+            }
+        },
+        {
+            "name": "monitor_location",
+            "description": "Location monitoring and safety checks",
+            "modal_endpoint": f"{modal_base_url}location.modal.run",
+            "method": "POST",
+            "arguments": {
+                "action": {
+                    "type": "string",
+                    "enum": ["check_safety"],
+                    "description": "Location action",
+                    "required": True
+                }
+            }
+        },
+        {
+            "name": "list_tools",
+            "description": "List all available tools with their descriptions, arguments, and Modal endpoint URLs",
+            "modal_endpoint": f"{modal_base_url}list-tools.modal.run",
+            "method": "GET",
+            "arguments": {}
+        }
+    ]
+
+    response_data = {
+        "success": True,
+        "tools": tools_info,
+        "total_tools": len(tools_info),
+        "server": "dementia-aid-mcp-server",
+        "timestamp": datetime.now().isoformat(),
+        "health_check_endpoint": f"{modal_base_url}health.modal.run"
+    }
+
+    return CallToolResult(
+        content=[TextContent(type="text", text=json.dumps(response_data, indent=2))]
+    )
+
+
 # Request handlers - handles the requests from the client
 
 
@@ -684,7 +795,7 @@ async def handle_location(args: Dict[str, Any]) -> CallToolResult:
 async def handle_list_tools() -> List[Tool]:
     """Handle list tools requests"""
     logger.info("Tools list requested")
-    return [ping_tool, face_recognition_tool, timer_tool, location_tool]
+    return [ping_tool, face_recognition_tool, timer_tool, location_tool, list_tools_tool]
 
 
 @server.call_tool()
@@ -701,6 +812,8 @@ async def handle_call_tool(name: str, arguments: Dict[str, Any]) -> CallToolResu
             return await handle_timer(arguments)
         elif name == "monitor_location":
             return await handle_location(arguments)
+        elif name == "list_tools":
+            return await handle_list_tools_info(arguments)
         else:
             from mcp.types import McpError, ErrorCode
 
@@ -861,47 +974,107 @@ async def location_endpoint(item: dict):
 )
 @modal.web_endpoint(method="GET", label="mcp-list-tools")
 async def list_tools_endpoint():
-    """Modal web endpoint for listing available tools"""
+    """Modal web endpoint for listing all tools"""
     try:
-        tools = [
+        logger.info("List tools API called")
+
+        # Define the base Modal URL (you might want to make this configurable)
+        modal_base_url = "https://antoinedoyen--dementia-aid-mcp-server-mcp-"
+
+        tools_info = [
             {
-                "name": ping_tool.name,
-                "description": ping_tool.description,
-                "inputSchema": ping_tool.inputSchema,
+                "name": "ping",
+                "description": "Simple ping tool to test MCP connection",
+                "modal_endpoint": f"{modal_base_url}ping.modal.run",
+                "method": "POST",
+                "arguments": {
+                    "message": {
+                        "type": "string",
+                        "description": "Message to echo back",
+                        "required": False,
+                        "default": "Hello from MCP!"
+                    }
+                }
             },
             {
-                "name": face_recognition_tool.name,
-                "description": face_recognition_tool.description,
-                "inputSchema": face_recognition_tool.inputSchema,
+                "name": "recognize_face",
+                "description": "Identify a person from camera input using facial recognition. If person not found and name/relationship provided, adds new person to database.",
+                "modal_endpoint": f"{modal_base_url}face-recognition.modal.run",
+                "method": "POST",
+                "arguments": {
+                    "image_data": {
+                        "type": "string",
+                        "description": "Base64 encoded image data",
+                        "required": True
+                    },
+                    "person_name": {
+                        "type": "string",
+                        "description": "Name of the person (optional - if provided, will be used for new person creation)",
+                        "required": False
+                    },
+                    "person_relationship": {
+                        "type": "string",
+                        "description": "Relationship to the person (optional - if provided, will be used for new person creation)",
+                        "required": False
+                    }
+                }
             },
             {
-                "name": timer_tool.name,
-                "description": timer_tool.description,
-                "inputSchema": timer_tool.inputSchema,
+                "name": "manage_timer",
+                "description": "Timer management for time-sensitive events",
+                "modal_endpoint": f"{modal_base_url}timer.modal.run",
+                "method": "POST",
+                "arguments": {
+                    "action": {
+                        "type": "string",
+                        "enum": ["set"],
+                        "description": "Timer action",
+                        "required": True
+                    },
+                    "duration_minutes": {
+                        "type": "number",
+                        "description": "Duration in minutes",
+                        "required": False
+                    }
+                }
             },
             {
-                "name": location_tool.name,
-                "description": location_tool.description,
-                "inputSchema": location_tool.inputSchema,
+                "name": "monitor_location",
+                "description": "Location monitoring and safety checks",
+                "modal_endpoint": f"{modal_base_url}location.modal.run",
+                "method": "POST",
+                "arguments": {
+                    "action": {
+                        "type": "string",
+                        "enum": ["check_safety"],
+                        "description": "Location action",
+                        "required": True
+                    }
+                }
             },
+            {
+                "name": "list_tools",
+                "description": "List all available tools with their descriptions, arguments, and Modal endpoint URLs",
+                "modal_endpoint": f"{modal_base_url}list-tools.modal.run",
+                "method": "GET",
+                "arguments": {}
+            }
         ]
 
-        return {
+        response_data = {
             "success": True,
-            "tools": tools,
-            "count": len(tools),
-            "timestamp": datetime.now().isoformat(),
+            "tools": tools_info,
+            "total_tools": len(tools_info),
             "server": "dementia-aid-mcp-server",
+            "timestamp": datetime.now().isoformat(),
+            "health_check_endpoint": f"{modal_base_url}health.modal.run"
         }
 
+        return response_data
+
     except Exception as e:
-        logger.error(f"List tools error: {e}")
-        return {
-            "success": False,
-            "message": "Failed to list tools",
-            "error": str(e),
-            "timestamp": datetime.now().isoformat(),
-        }
+        logger.error(f"List tools API error: {e}")
+        return {"success": False, "message": "List tools failed", "error": str(e)}
 
 
 @app.function(

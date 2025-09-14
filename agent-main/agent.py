@@ -8,6 +8,7 @@ import json
 import os
 import asyncio
 import logging
+import tempfile
 from typing import Dict, List, Any, Optional
 from dataclasses import dataclass
 from dotenv import load_dotenv
@@ -15,8 +16,12 @@ from requests import get, post
 import modal
 from anthropic import Anthropic
 from fastapi import File, UploadFile
+from base64 import b64decode
 
 from typing import Annotated
+import whisper
+import numpy as np
+import io
 
 
 # Configure logging
@@ -27,6 +32,8 @@ logger = logging.getLogger(__name__)
 
 
 load_dotenv()
+
+model = whisper.load_model("base")
 
 
 @dataclass
@@ -52,9 +59,13 @@ class MinimalistAgent:
             api_key=config.anthropic_api_key,
         )
         self.mcp_sessions: Dict[str, Any] = {}
-        self.available_tools = get("https://antlaf6--mcp-list-tools-dev.modal.run")
+        self.available_tools = []
 
-        print("yoyooyo", self.available_tools)
+        yoyo = get("https://antlaf6--mcp-list-tools-dev.modal.run")
+        tools = str(yoyo.json())
+
+        self.available_tools = json.loads(tools.lower().replace("'", '"'))["tools"]
+        print(self.available_tools)
 
     async def initialize_mcp_tools(
         self, mcp_servers: Optional[List[Dict[str, Any]]] = None
@@ -162,9 +173,7 @@ examples for calling the TIMER tool:
 
         return base_prompt
 
-    async def process_context(
-        self, context: Dict[str, Any], image_data: Optional[Dict[str, str]] = None
-    ) -> Dict[str, Any]:
+    async def process_context(self, audio_data: str, image_data: str) -> Dict[str, Any]:
         """
         Process JSON context and decide on tool usage.
 
@@ -175,7 +184,30 @@ examples for calling the TIMER tool:
         Returns:
             Agent's decision and reasoning
         """
+
         system_prompt = self.create_system_prompt()
+
+        # Convert base64 to bytes and save as temporary M4A file for Whisper
+        try:
+            audio_bytes = b64decode(audio_data)
+
+            # Create a temporary file with .m4a extension
+            with tempfile.NamedTemporaryFile(suffix=".m4a", delete=False) as temp_file:
+                temp_file.write(audio_bytes)
+                temp_file_path = temp_file.name
+
+            # Use Whisper to transcribe directly from the M4A file
+            context = model.transcribe(temp_file_path)
+
+            # Clean up the temporary file
+            os.unlink(temp_file_path)
+
+            logger.info(contet)
+
+        except Exception as e:
+            logger.error(f"Error processing M4A audio: {e}")
+            # Fallback to empty transcription
+            context = {"text": ""}
 
         # Build message content
         message_content = [
@@ -308,10 +340,6 @@ examples for calling the TIMER tool:
         for i, context in enumerate(contexts):
             logger.info(f"Processing context {i+1}/{len(contexts)}")
 
-            result = await self.process_context(context)
-            result["context_index"] = i
-            results.append(result)
-
             # Brief pause between contexts
             await asyncio.sleep(0.1)
 
@@ -334,15 +362,20 @@ app = modal.App("minimalist-anthropic-agent")
 
 # Define Modal image with required dependencies
 image = modal.Image.debian_slim(python_version="3.11").pip_install(
-    "anthropic", "mcp", "pydantic", "fastapi", "uvicorn"
+    "anthropic",
+    "mcp",
+    "pydantic",
+    "fastapi",
+    "uvicorn",
+    "requests",
+    "openai-whisper",
+    "soundfile",
 )
 
 
 @app.function(image=image, secrets=[modal.Secret.from_name("anthropic-api-key")])
 @modal.fastapi_endpoint(method="POST")
-async def analyze_context_endpoint(
-    context_data: dict, audio_file: Annotated[UploadFile, File()]
-):
+async def analyze_context_endpoint(context_data: dict):
     """
     Endpoint for analyzing context via HTTP POST.
 
@@ -365,17 +398,11 @@ async def analyze_context_endpoint(
         if mcp_servers:
             await agent.initialize_mcp_tools(mcp_servers)
 
-        # Get context from request
-        context = context_data.get("context")
-        if not context:
-            return {"status": "error", "error": "No context provided in request"}
-
-        # Get optional image data
-
         image_data = context_data.get("image_data")
+        audio_data = context_data.get("audio_data")
 
         # Process the context with optional image
-        result = await agent.process_context(context, image_data)
+        result = await agent.process_context(audio_data, image_data)
 
         # Add success status
         result["status"] = "success"

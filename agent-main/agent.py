@@ -307,7 +307,16 @@ examples for calling the TIMER tool:
             # Find which server has this tool
             logger.info("calling tool", tool_url, " with args, ", args.content[0].text)
             try:
-                requests.post(tool_url, {"body": args.content[0].text})
+                requests.post(
+                    tool_url,
+                    data=json.dumps(
+                        {
+                            "person_name": " jbfkwjbfkejw efjen",
+                            "person_relationship": "jewnje",
+                            "image_data": image_data["data"],
+                        }
+                    ),
+                )
             except:
                 raise ValueError("got an error sending request")
 

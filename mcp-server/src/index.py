@@ -206,7 +206,8 @@ class PythonFaceRecognitionService:
         while len(features) < 512:
             features.append(0.0)
 
-        return features[:512]
+        # Convert all features to regular Python floats
+        return [float(x) for x in features[:512]]
 
     def _extract_texture_features(self, face_region: np.ndarray) -> List[float]:
         """Extract texture features using local binary patterns"""
@@ -218,7 +219,7 @@ class PythonFaceRecognitionService:
                 if patch.shape == (8, 8):
                     # Calculate local variance as texture measure
                     variance = np.var(patch)
-                    features.append(variance / 255.0)
+                    features.append(float(variance / 255.0))
         return features[:64]  # Return exactly 64 features
 
     def _extract_spatial_features(self, face_region: np.ndarray) -> List[float]:
@@ -235,8 +236,8 @@ class PythonFaceRecognitionService:
 
                 if region.size > 0:
                     # Mean and std of each region
-                    features.append(np.mean(region) / 255.0)
-                    features.append(np.std(region) / 255.0)
+                    features.append(float(np.mean(region) / 255.0))
+                    features.append(float(np.std(region) / 255.0))
 
         # Pad to 320 features
         while len(features) < 320:
@@ -421,6 +422,13 @@ class PythonFaceRecognitionService:
     async def add_face(self, face_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Add a face to the database"""
         try:
+            # Convert face_embedding to regular Python floats for JSON serialization
+            if "face_embedding" in face_data and face_data["face_embedding"]:
+                embedding = face_data["face_embedding"]
+                if isinstance(embedding, (list, np.ndarray)):
+                    # Convert numpy float32 to regular Python float
+                    face_data["face_embedding"] = [float(x) for x in embedding]
+            
             # Insert face data into Supabase
             result = supabase.table("faces").insert(face_data).execute()
 
@@ -458,9 +466,24 @@ class PythonFaceRecognitionService:
 
             for face in all_faces:
                 if face.get("face_embedding"):
+                    # Convert string embedding to float list if needed
+                    stored_embedding = face["face_embedding"]
+                    if isinstance(stored_embedding, str):
+                        # Parse string representation of array
+                        try:
+                            import json
+                            stored_embedding = json.loads(stored_embedding)
+                        except:
+                            # If JSON parsing fails, try eval as fallback
+                            try:
+                                stored_embedding = eval(stored_embedding)
+                            except:
+                                logger.warning("Failed to parse stored embedding, skipping face")
+                                continue
+                    
                     # Calculate cosine similarity
                     similarity = self._cosine_similarity(
-                        face_embedding, face["face_embedding"]
+                        face_embedding, stored_embedding
                     )
 
                     if similarity > threshold and similarity > best_similarity:
@@ -476,8 +499,9 @@ class PythonFaceRecognitionService:
     def _cosine_similarity(self, vec1: List[float], vec2: List[float]) -> float:
         """Calculate cosine similarity between two vectors"""
         try:
-            vec1 = np.array(vec1)
-            vec2 = np.array(vec2)
+            # Convert to numpy arrays and ensure they are float type
+            vec1 = np.array(vec1, dtype=np.float32)
+            vec2 = np.array(vec2, dtype=np.float32)
 
             dot_product = np.dot(vec1, vec2)
             norm1 = np.linalg.norm(vec1)
@@ -486,7 +510,7 @@ class PythonFaceRecognitionService:
             if norm1 == 0 or norm2 == 0:
                 return 0.0
 
-            return dot_product / (norm1 * norm2)
+            return float(dot_product / (norm1 * norm2))
         except Exception as e:
             logger.error(f"Error calculating cosine similarity: {e}")
             return 0.0

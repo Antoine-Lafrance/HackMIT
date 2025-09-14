@@ -331,8 +331,21 @@ class PythonFaceRecognitionService {
   }
 
   private getRandomColor(): string {
-    const colors = ['red', 'blue', 'green', 'yellow', 'purple', 'orange', 'pink', 'cyan'];
-    return colors[Math.floor(Math.random() * colors.length)];
+    const hexColors = [
+      '#FF6B6B',  // Red
+      '#4ECDC4',  // Teal
+      '#45B7D1',  // Blue
+      '#96CEB4',  // Green
+      '#FFEAA7',  // Yellow
+      '#DDA0DD',  // Plum
+      '#FFB6C1',  // Light Pink
+      '#98D8C8',  // Mint
+      '#F7DC6F',  // Gold
+      '#BB8FCE',  // Lavender
+      '#85C1E9',  // Sky Blue
+      '#F8C471',  // Orange
+    ];
+    return hexColors[Math.floor(Math.random() * hexColors.length)];
   }
 }
 

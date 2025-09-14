@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS faces (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     relationship VARCHAR(255) NOT NULL, -- e.g., "daughter", "son", "caregiver", "friend"
-    color VARCHAR(50) DEFAULT 'blue', -- UI color for visualization
+    color VARCHAR(7) DEFAULT '#45B7D1', -- UI color for visualization (hex format)
     face_embedding VECTOR(512), -- Face embedding vector (face-api.js uses 512 dimensions)
     image_url TEXT, -- Optional: URL to reference image
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),

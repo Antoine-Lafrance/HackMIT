@@ -27,7 +27,7 @@ This guide explains how your agent should integrate with the face recognition sy
   "person": "John Doe",
   "relationship": "Friend", 
   "confidence": 0.95,
-  "color": "blue",
+  "color": "#45B7D1",
   "is_new_person": false,
   "message": "Found existing person: John Doe (Friend)"
 }

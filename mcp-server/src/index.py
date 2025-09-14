@@ -331,6 +331,7 @@ class PythonFaceRecognitionService:
 
             # Detect faces
             faces = self.detect_faces(image_array)
+            logger.info(f"Face detection completed: {len(faces)} faces detected")
 
             if len(faces) == 0:
                 return {
@@ -354,15 +355,17 @@ class PythonFaceRecognitionService:
 
             # Search for existing person in database
             existing_person = await self.search_face(face_embedding)
+            logger.info(f"Database search completed: {'Found existing person' if existing_person else 'No existing person found'}")
 
             if existing_person:
                 # Person found in database
+                logger.info(f"✅ RECOGNIZED: {existing_person['name']} ({existing_person['relationship']}) - existing person")
                 return {
                     "success": True,
                     "person": existing_person["name"],
                     "relationship": existing_person["relationship"],
                     "confidence": 0.8,  # Default confidence for database matches
-                    "color": existing_person.get("color", "blue"),
+                    "color": existing_person.get("color", "#45B7D1"),  # Default blue hex
                     "is_new_person": False,
                     "message": f"Found existing person: {existing_person['name']} ({existing_person['relationship']})",
                 }
@@ -379,6 +382,7 @@ class PythonFaceRecognitionService:
                     )
 
                     if new_face:
+                        logger.info(f"✅ ADDED TO DATABASE: {new_face['name']} ({new_face['relationship']}) - new person")
                         return {
                             "success": True,
                             "person": new_face["name"],
@@ -408,11 +412,26 @@ class PythonFaceRecognitionService:
             }
 
     def _get_random_color(self) -> str:
-        """Get a random color for new faces"""
-        colors = ["red", "blue", "green", "yellow", "purple", "orange", "pink", "cyan"]
+        """Get a random hex color for new faces"""
         import random
-
-        return random.choice(colors)
+        
+        # Predefined set of nice hex colors for UI display
+        hex_colors = [
+            "#FF6B6B",  # Red
+            "#4ECDC4",  # Teal
+            "#45B7D1",  # Blue
+            "#96CEB4",  # Green
+            "#FFEAA7",  # Yellow
+            "#DDA0DD",  # Plum
+            "#FFB6C1",  # Light Pink
+            "#98D8C8",  # Mint
+            "#F7DC6F",  # Gold
+            "#BB8FCE",  # Lavender
+            "#85C1E9",  # Sky Blue
+            "#F8C471",  # Orange
+        ]
+        
+        return random.choice(hex_colors)
 
     async def process_image(self, image_data: str) -> np.ndarray:
         """Process image and return numpy array"""
@@ -421,11 +440,14 @@ class PythonFaceRecognitionService:
     async def add_face(self, face_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Add a face to the database"""
         try:
+            logger.info(f"Inserting face into Supabase: {face_data['name']} ({face_data['relationship']})")
             # Insert face data into Supabase
             result = supabase.table("faces").insert(face_data).execute()
 
             if result.data and len(result.data) > 0:
+                logger.info(f"✅ Supabase insert successful: Face ID {result.data[0].get('id', 'unknown')}")
                 return result.data[0]
+            logger.warning("Supabase insert returned no data")
             return None
 
         except Exception as e:

@@ -166,7 +166,7 @@ return (
             <View style={styles.header}>
                 <View style={styles.titleContainer}>
                     <Text style={styles.title}>Mementor</Text>
-                    <Text style={styles.subtitle}>Memories made manageable</Text>
+                    <Text style={styles.subtitle}>Mind over matter</Text>
                 </View>
             </View>
 

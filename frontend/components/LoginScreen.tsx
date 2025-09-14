@@ -78,7 +78,7 @@ return (
             />
         </View>
         <Text style={styles.title}>Memento</Text>
-        <Text style={styles.subtitle}>Sign in to your account</Text>
+        <Text style={styles.subtitle}>Mind over matter</Text>
 
         <TextInput
             style={styles.input}

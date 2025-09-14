@@ -79,7 +79,7 @@ export default function SignupScreen({ onNavigateToLogin }: SignupScreenProps) {
                     />
                 </View>
                 <Text style={styles.title}>Memento</Text>
-                <Text style={styles.subtitle}>Join us today</Text>
+                <Text style={styles.subtitle}>Mind over matter</Text>
 
                 <TextInput
                 style={styles.input}

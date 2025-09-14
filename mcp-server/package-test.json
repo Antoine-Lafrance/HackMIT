@@ -1,0 +1,10 @@
+{
+  "name": "supabase-test",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Simple Supabase connection test",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.57.4",
+    "dotenv": "^16.4.5"
+  }
+}

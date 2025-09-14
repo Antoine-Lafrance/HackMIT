@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { supabase } from '../lib/supabase';
 
 interface SettingsScreenProps {
     onClose?: () => void;
@@ -176,6 +177,33 @@ const clearHomeLocation = async () => {
     );
 };
 
+const handleLogout = async () => {
+    Alert.alert(
+        'Log Out',
+        'Are you sure you want to log out?',
+        [
+            { text: 'Cancel', style: 'cancel' },
+            { 
+                text: 'Log Out', 
+                style: 'destructive',
+                onPress: async () => {
+                    try {
+                        const { error } = await supabase.auth.signOut();
+                        if (error) {
+                            Alert.alert('Error', 'Failed to log out. Please try again.');
+                        } else {
+                            // The auth state change will automatically navigate back to login
+                            Alert.alert('Success', 'Logged out successfully.');
+                        }
+                    } catch (error) {
+                        Alert.alert('Error', 'Failed to log out. Please try again.');
+                    }
+                }
+            }
+        ]
+    );
+};
+
 return (
     <LinearGradient
         colors={['#1a0033', '#4a0080', '#8a2be2', '#9932cc']}
@@ -252,6 +280,21 @@ return (
                         </TouchableOpacity>
                     )}
                 </View>
+            </View>
+
+            <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Account</Text>
+                <Text style={styles.sectionDescription}>
+                    Manage your account settings.
+                </Text>
+
+                <TouchableOpacity 
+                    style={[styles.actionButton, styles.logoutButton]}
+                    onPress={handleLogout}
+                >
+                    <Ionicons name="log-out-outline" size={20} color="white" />
+                    <Text style={styles.buttonText}>Log Out</Text>
+                </TouchableOpacity>
             </View>
         </ScrollView>
     </LinearGradient>
@@ -362,6 +405,10 @@ const styles = StyleSheet.create({
     clearButton: {
         backgroundColor: 'rgba(255, 100, 100, 0.3)',
         borderColor: 'rgba(255, 100, 100, 0.5)',
+    },
+    logoutButton: {
+        backgroundColor: 'rgba(255, 59, 48, 0.3)',
+        borderColor: 'rgba(255, 59, 48, 0.5)',
     },
     buttonText: {
         color: 'white',

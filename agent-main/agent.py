@@ -284,11 +284,10 @@ examples for calling the TIMER tool:
         }
         print("yo im making a request")
         for tool_request in tools_to_use:
-            logger.info(tool_request)
             tool_url = table[tool_request["tool_name"]]
 
             # get the args
-            args = self.anthropic.messages.create(
+            args_response = self.anthropic.messages.create(
                 model=self.config.model,
                 max_tokens=self.config.max_tokens,
                 temperature=self.config.temperature,
@@ -299,12 +298,13 @@ examples for calling the TIMER tool:
                 messages=[{"role": "user", "content": "your answer is..."}],
             )
 
-            args = json.loads(args.content[0].text)
+            args_text = args_response.content[0].text
+            args = json.loads(args_text)
 
             # Find which server has this tool
 
             try:
-                print("making the request")
+                print("making the request", args["parameters"])
                 res = requests.post(
                     tool_url,
                     data=json.dumps(

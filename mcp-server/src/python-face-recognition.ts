@@ -54,6 +54,7 @@ class PythonFaceRecognitionService {
 
   constructor() {
     this.pythonServiceUrl = process.env.PYTHON_FACE_SERVICE_URL || 'http://localhost:8001';
+    console.log(`Python face service URL: ${this.pythonServiceUrl}`);
   }
 
   async initialize(): Promise<void> {
@@ -62,17 +63,28 @@ class PythonFaceRecognitionService {
     try {
       console.log('Initializing Python face recognition service...');
       
-      // Test connection to Python service
-      const response = await fetch(`${this.pythonServiceUrl}/health`);
+      // Test connection to Python service with timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+      
+      const response = await fetch(`${this.pythonServiceUrl}/health`, {
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
       if (!response.ok) {
-        throw new Error(`Python service not available: ${response.status}`);
+        throw new Error(`Python service not available: ${response.status} ${response.statusText}`);
       }
       
       this.modelsLoaded = true;
       console.log('✅ Python face recognition service ready');
     } catch (error) {
       console.error('Failed to connect to Python face recognition service:', error);
-      throw new Error('Python face recognition service could not be initialized');
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new Error('Python face recognition service connection timeout - is the service running?');
+      }
+      throw new Error(`Python face recognition service could not be initialized: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -225,58 +237,102 @@ class PythonFaceRecognitionService {
     }
   }
 
-  async recognizeFace(base64Image: string): Promise<FaceRecognitionResult> {
+  async recognizeFace(base64Image: string, personName?: string, personRelationship?: string): Promise<FaceRecognitionResult> {
     try {
       // Initialize service if needed
       if (!this.modelsLoaded) {
         await this.initialize();
       }
 
-      // Process the image
-      const imageBuffer = await this.processImage(base64Image);
-
-      // Detect faces using Python service
-      const faceDetections = await this.detectFaces(imageBuffer);
-
-      if (faceDetections.length === 0) {
+      // Validate image data
+      if (!base64Image || base64Image.trim().length === 0) {
         return {
           success: false,
-          message: 'No faces detected in the image'
+          message: 'No image data provided',
+          error: 'Empty image data'
         };
       }
 
-      // For now, process the first detected face
+      // Step 1: Get face detection from Python service
+      const faceDetections = await this.detectFaces(Buffer.from(base64Image, 'base64'));
+      
+      if (faceDetections.length === 0) {
+        return {
+          success: false,
+          message: 'No faces detected in the image',
+          error: 'No faces found'
+        };
+      }
+
+      // Step 2: Use the first detected face for recognition
       const face = faceDetections[0];
-
-      // Try to identify the face using database
-      const identifiedFace = await this.identifyFace(face.embedding);
-
-      if (identifiedFace) {
+      
+      // Step 3: Search for existing person in Supabase
+      const existingPerson = await this.identifyFace(face.embedding);
+      
+      if (existingPerson) {
+        // Person found in database
         return {
           success: true,
-          person: identifiedFace.name,
-          relationship: identifiedFace.relationship,
-          confidence: face.confidence,
-          color: identifiedFace.color,
-          message: `Recognized ${identifiedFace.name} (${identifiedFace.relationship})`
+          person: existingPerson.name,
+          relationship: existingPerson.relationship,
+          confidence: 0.8, // Default confidence for database matches
+          color: existingPerson.color,
+          message: `Found existing person: ${existingPerson.name} (${existingPerson.relationship})`
         };
       } else {
+        // Person not found, add new person if name/relationship provided
+        if (personName && personRelationship) {
+          const newFace = await this.addFace({
+            name: personName,
+            relationship: personRelationship,
+            face_embedding: face.embedding,
+            color: this.getRandomColor()
+          });
+          
+          if (newFace) {
+            return {
+              success: true,
+              person: newFace.name,
+              relationship: newFace.relationship,
+              confidence: 1.0,
+              color: newFace.color,
+              message: `Added new person: ${newFace.name} (${newFace.relationship})`
+            };
+          }
+        }
+        
         return {
           success: false,
           person: 'Unknown',
           relationship: 'Unknown',
           confidence: face.confidence,
-          message: 'Face detected but not recognized. Consider adding this person to the database.'
+          message: 'Face detected but not recognized. Provide name and relationship to add new person.'
         };
       }
     } catch (error) {
       console.error('Error in face recognition:', error);
+      
+      let errorMessage = 'Face recognition failed';
+      if (error instanceof Error) {
+        if (error.message.includes('fetch')) {
+          errorMessage = 'Cannot connect to Python face recognition service - is it running?';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       return {
         success: false,
-        message: 'Face recognition failed',
+        message: errorMessage,
         error: error instanceof Error ? error.message : 'Unknown error'
       };
     }
+  }
+
+  private getRandomColor(): string {
+    const colors = ['red', 'blue', 'green', 'yellow', 'purple', 'orange', 'pink', 'cyan'];
+    return colors[Math.floor(Math.random() * colors.length)];
   }
 }
 

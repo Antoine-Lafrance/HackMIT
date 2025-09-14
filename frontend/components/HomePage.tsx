@@ -4,20 +4,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as Contacts from 'expo-contacts';
 
-interface HomePageProps {
-    onOpenCamera?: () => void;
-    onOpenSettings?: () => void;
-}
+interface HomePageProps {}
 
-export default function HomePage({ onOpenCamera, onOpenSettings }: HomePageProps) {
-
-  const handleCameraPress = () => {
-    if (onOpenCamera) {
-      onOpenCamera();
-    } else {
-      Alert.alert('Camera', 'Camera functionality will be implemented here');
-    }
-  };
+export default function HomePage({}: HomePageProps) {
 
   const handleContactCaretaker = async () => {
     try {
@@ -93,30 +82,10 @@ return (
         end={{ x: 0, y: 1 }}
     >
         <View style={styles.content}>
-            <View style={styles.header}>
-                <View style={styles.titleContainer}>
-                    <Text style={styles.title}>Welcome to Mementor</Text>
-                    <Text style={styles.subtitle}>Your aid to dementia</Text>
-                </View>
-                <TouchableOpacity 
-                    style={styles.settingsButton}
-                    onPress={onOpenSettings}
-                    activeOpacity={0.8}
-                >
-                    <Ionicons name="settings-outline" size={24} color="white" />
-                </TouchableOpacity>
-            </View>
+            <Text style={styles.title}>Welcome to Mementor</Text>
+            <Text style={styles.subtitle}>Your aid to dementia</Text>
 
-            <View style={styles.cameraSection}>
-                <TouchableOpacity 
-                style={styles.cameraButton}
-                onPress={handleCameraPress}
-                activeOpacity={0.8}
-                >
-                <Ionicons name="camera" size={40} color="white" />
-                <Text style={styles.cameraButtonText}>Open Camera</Text>
-                </TouchableOpacity>
-            </View>
+            {/* Face recognition is handled by agent system - no frontend needed */}
 
             <View style={styles.featuresSection}>
                 <Text style={styles.featuresTitle}>Features</Text>
@@ -175,39 +144,6 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         marginBottom: 0,
         color: '#ddd',
-    },
-    settingsButton: {
-        backgroundColor: 'rgba(255, 255, 255, 0.2)',
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.3)',
-        borderRadius: 20,
-        padding: 12,
-        marginTop: 5,
-    },
-    cameraSection: {
-        alignItems: 'center',
-        marginBottom: 40,
-    },
-    cameraButton: {
-        backgroundColor: 'rgba(255, 255, 255, 0.2)',
-        borderWidth: 2,
-        borderColor: 'rgba(255, 255, 255, 0.3)',
-        borderRadius: 20,
-        padding: 30,
-        alignItems: 'center',
-        justifyContent: 'center',
-        minWidth: 200,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 10,
-        elevation: 8,
-    },
-    cameraButtonText: {
-        color: 'white',
-        fontSize: 18,
-        fontWeight: '600',
-        marginTop: 10,
     },
     featuresSection: {
         flex: 1,

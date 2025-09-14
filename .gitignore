@@ -83,3 +83,13 @@ docs/_build/
 prompts/custom/
 prompts/scenarios/
 !prompts/scenarios/general.txt
+__pycache__/
+*.pyc
+*.pyo
+*.pyc
+.DS_Store
+node_modules/
+.env
+.env.local
+.env.production
+.env.development

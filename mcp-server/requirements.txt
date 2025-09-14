@@ -1,0 +1,9 @@
+# MCP Server Dependencies
+mcp>=1.0.0
+python-dotenv>=1.0.0
+supabase>=2.0.0
+
+# Face Recognition Dependencies (integrated from face_service.py)
+opencv-python>=4.5.0
+Pillow>=9.0.0
+numpy>=1.21.0

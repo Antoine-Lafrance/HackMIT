@@ -4,10 +4,8 @@ import { User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import AuthScreen from './AuthScreen';
 import HomePage from './HomePage';
-import CameraScreen from './CameraScreen';
-import SettingsScreen from './SettingsScreen';
 
-type Screen = 'auth' | 'home' | 'camera' | 'settings';
+type Screen = 'auth' | 'home';
 
 export default function MainApp() {
     const [currentScreen, setCurrentScreen] = useState<Screen>('auth');
@@ -26,42 +24,14 @@ export default function MainApp() {
     return () => subscription.unsubscribe();
     }, []);
 
-    const handleOpenCamera = () => {
-        setCurrentScreen('camera');
-    };
-
-    const handleOpenSettings = () => {
-        setCurrentScreen('settings');
-    };
-
-    const handleCloseCamera = () => {
-        setCurrentScreen('home');
-    };
-
-    const handleCloseSettings = () => {
-        setCurrentScreen('home');
-    };
-
-    const handleDataCapture = (data: any) => {
-        console.log('Data captured:', data);
-        setCurrentScreen('home');
-    };
+    // Face recognition is handled by agent system - no frontend needed
 
     const renderScreen = () => {
         switch (currentScreen) {
         case 'auth':
             return <AuthScreen />;
         case 'home':
-            return <HomePage onOpenCamera={handleOpenCamera} onOpenSettings={handleOpenSettings} />;
-        case 'camera':
-            return (
-            <CameraScreen 
-                onClose={handleCloseCamera}
-                onDataCapture={handleDataCapture}
-            />
-            );
-        case 'settings':
-            return <SettingsScreen onClose={handleCloseSettings} />;
+            return <HomePage />;
         default:
             return <AuthScreen />;
         }

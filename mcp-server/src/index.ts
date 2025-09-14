@@ -48,7 +48,7 @@ const pingTool = {
 // Face recognition tool
 const faceRecognitionTool = {
   name: "recognize_face",
-  description: "Identify a person from camera input using facial recognition",
+  description: "Search for a person in database or add new person using facial recognition",
   inputSchema: {
     type: "object",
     properties: {
@@ -56,28 +56,17 @@ const faceRecognitionTool = {
         type: "string",
         description: "Base64 encoded image data",
       },
-      operation: {
-        type: "string",
-        enum: ["identify", "add_face", "list_faces"],
-        description:
-          "Operation to perform: identify (recognize face), add_face (add new person), list_faces (get all known faces)",
+      person_name: { 
+        type: "string", 
+        description: "Name of the person (optional - if provided, will be used for new person creation)" 
       },
-      name: {
-        type: "string",
-        description: "Name of the person (required for add_face operation)",
-      },
-      relationship: {
-        type: "string",
-        description:
-          "Relationship to the person (required for add_face operation)",
-      },
-      color: {
-        type: "string",
-        description: "UI color for the person (optional, defaults to blue)",
-      },
+      person_relationship: { 
+        type: "string", 
+        description: "Relationship to the person (optional - if provided, will be used for new person creation)" 
+      }
     },
-    required: ["image_data", "operation"],
-  },
+    required: ["image_data"]
+  }
 };
 
 const timerTool = {
@@ -131,136 +120,24 @@ async function handlePing(args: any) {
 }
 
 async function handleFaceRecognition(args: any) {
-  const { image_data, operation, name, relationship, color } = args;
-
-  console.log(`Face recognition called with operation: ${operation}`);
-
+  const { image_data, person_name, person_relationship } = args;
+  
+  console.log(`Face recognition called with person_name: ${person_name}, person_relationship: ${person_relationship}`);
+  
   try {
-    switch (operation) {
-      case "identify":
-        const recognitionResult =
-          await pythonFaceRecognitionService.recognizeFace(image_data);
-        return {
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify(recognitionResult),
-            },
-          ],
-        };
-
-      case "add_face":
-        if (!name || !relationship) {
-          return {
-            content: [
-              {
-                type: "text",
-                text: JSON.stringify({
-                  success: false,
-                  message:
-                    "Name and relationship are required for add_face operation",
-                }),
-              },
-            ],
-          };
-        }
-
-        // Process image to get embedding
-        const imageBuffer = await pythonFaceRecognitionService.processImage(
-          image_data
-        );
-        const faceDetections = await pythonFaceRecognitionService.detectFaces(
-          imageBuffer
-        );
-
-        if (faceDetections.length === 0) {
-          return {
-            content: [
-              {
-                type: "text",
-                text: JSON.stringify({
-                  success: false,
-                  message:
-                    "No face detected in the image. Please provide a clear image with a face.",
-                }),
-              },
-            ],
-          };
-        }
-
-        // Add the first detected face to database
-        const newFace = await pythonFaceRecognitionService.addFace({
-          name,
-          relationship,
-          color: color || "blue",
-          face_embedding: faceDetections[0].embedding,
-          user_id: undefined, // You might want to pass user_id from the client
-        });
-
-        if (newFace) {
-          return {
-            content: [
-              {
-                type: "text",
-                text: JSON.stringify({
-                  success: true,
-                  message: `Successfully added ${name} (${relationship}) to the database`,
-                  person: newFace.name,
-                  relationship: newFace.relationship,
-                  color: newFace.color,
-                  id: newFace.id,
-                }),
-              },
-            ],
-          };
-        } else {
-          return {
-            content: [
-              {
-                type: "text",
-                text: JSON.stringify({
-                  success: false,
-                  message: "Failed to add face to database",
-                }),
-              },
-            ],
-          };
-        }
-
-      case "list_faces":
-        const allFaces = await pythonFaceRecognitionService.getAllFaces();
-        return {
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify({
-                success: true,
-                message: `Found ${allFaces.length} known faces`,
-                faces: allFaces.map((face) => ({
-                  id: face.id,
-                  name: face.name,
-                  relationship: face.relationship,
-                  color: face.color,
-                  created_at: face.created_at,
-                })),
-              }),
-            },
-          ],
-        };
-
-      default:
-        return {
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify({
-                success: false,
-                message: `Unknown operation: ${operation}. Supported operations: identify, add_face, list_faces`,
-              }),
-            },
-          ],
-        };
-    }
+    // Use the Python service's search-person endpoint directly
+    const recognitionResult = await pythonFaceRecognitionService.recognizeFace(
+      image_data, 
+      person_name, 
+      person_relationship
+    );
+    
+    return {
+      content: [{
+        type: "text",
+        text: JSON.stringify(recognitionResult)
+      }]
+    };
   } catch (error) {
     console.error("Error in face recognition:", error);
     return {
@@ -423,16 +300,16 @@ async function main() {
     console.log("MCP Server connected and ready!");
     console.log("Available tools:");
     console.log("   - ping (test connectivity)");
-    console.log(
-      "   - recognize_face (face identification, adding faces, listing faces)"
-    );
+    console.log("   - recognize_face (search for person or add new person using facial recognition)");
     console.log("   - manage_timer (timer management)");
     console.log("   - monitor_location (location monitoring)");
     console.log("");
-    console.log("Face recognition operations:");
-    console.log("   - identify: Recognize a person from an image");
-    console.log("   - add_face: Add a new person to the database");
-    console.log("   - list_faces: Get all known faces");
+    console.log("Face recognition usage:");
+    console.log("   - Call recognize_face with image_data (required)");
+    console.log("   - Optionally provide person_name and person_relationship");
+    console.log("   - If person exists in database, returns match");
+    console.log("   - If person doesn't exist and name/relationship provided, adds new person");
+    
   } catch (error) {
     console.error("Failed to start MCP server:", error);
     process.exit(1);

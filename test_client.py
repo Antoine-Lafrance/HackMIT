@@ -76,8 +76,9 @@ def send_context_request(context, mcp_servers=None, image_path=None):
             json=payload,
             headers={"Content-Type": "application/json"},
         )
-
+        print("help here")
         response.raise_for_status()  # Raise an exception for bad status codes
+
         return response.json()
 
     except requests.exceptions.RequestException as e:

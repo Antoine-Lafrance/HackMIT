@@ -1,9 +1,3 @@
-#!/usr/bin/env python3
-"""
-Minimalist Agent using Anthropic API with MCP Tools
-Designed to run on Modal cloud computing platform.
-"""
-
 import json
 import os
 import asyncio
@@ -203,8 +197,6 @@ examples for calling the TIMER tool:
             # Clean up the temporary file
             os.unlink(temp_file_path)
 
-            logger.info(contet)
-
         except Exception as e:
             logger.error(f"Error processing M4A audio: {e}")
             # Fallback to empty transcription
@@ -215,18 +207,22 @@ examples for calling the TIMER tool:
             {
                 "type": "text",
                 "text": f"Analyze this context and decide on appropriate actions:\n\n{json.dumps(context, indent=2)}",
-            }
+            },
+            {
+                "type": "text",
+                "text": f"only return the json object as described, return nothing else or you will die.",
+            },
         ]
 
         # Add image if provided
-        if image_data and image_data.get("data"):
+        if image_data and image_data:
             message_content.append(
                 {
                     "type": "image",
                     "source": {
                         "type": "base64",
-                        "media_type": image_data.get("media_type", "image/jpeg"),
-                        "data": image_data["data"],
+                        "media_type": "image/jpeg",
+                        "data": image_data,
                     },
                 }
             )
@@ -243,19 +239,19 @@ examples for calling the TIMER tool:
 
             # Parse response
             response_text = response.content[0].text
-
+            print("alo je suis ici", response_text)
             try:
                 decision = json.loads(response_text)
-                logger.info(f"Agent decision: {decision['decision']}")
-
+                print(response_text)
                 # If agent wants to use tools, execute them
+                print("Hi im here", decision.get("decision"), decision)
                 if decision.get("decision") == "use_tools":
-                    decision["tool_results"] = await self.execute_tools(
+                    print("using tool")
+                    decision["tool_result"] = await self.execute_tools(
                         decision.get("tools_to_use", []), system_prompt, image_data
                     )
-
+                    print("overwrote decision", decision)
                 return decision
-
             except json.JSONDecodeError:
                 # If response isn't valid JSON, treat as direct response
                 return {
@@ -286,7 +282,7 @@ examples for calling the TIMER tool:
             "recognize_face": "https://antlaf6--mcp-face-recognition-dev.modal.run",
             "health_endpoint": "https://antlaf6--mcp-health-dev.modal.run",
         }
-
+        print("yo im making a request")
         for tool_request in tools_to_use:
             logger.info(tool_request)
             tool_url = table[tool_request["tool_name"]]
@@ -298,25 +294,29 @@ examples for calling the TIMER tool:
                 temperature=self.config.temperature,
                 system=f"here is a prompt a user asked for your tool call: ({base_prompt}), you are now tasked with sending the right args to this function call. just return the JSON of the parameters for this function call in a list, nothing else. Add nulls if youre not sure. Here is the structure i want: arguments:"
                 + "person_name"
-                + "person_relationship",
+                + "person_relationship"
+                + "return nothing else than these keys in a valid json object. I dont want anything else except for those keys or you will die.",
                 messages=[{"role": "user", "content": "your answer is..."}],
             )
 
-            logger.info("hellooooo", args.content[0].text)
+            args = json.loads(args.content[0].text)
 
             # Find which server has this tool
-            logger.info("calling tool", tool_url, " with args, ", args.content[0].text)
+
             try:
-                requests.post(
+                print("making the request")
+                res = requests.post(
                     tool_url,
                     data=json.dumps(
                         {
-                            "person_name": " jbfkwjbfkejw efjen",
-                            "person_relationship": "jewnje",
-                            "image_data": image_data["data"],
+                            "person_name": args["parameters"]["name"],
+                            "person_relationship": args["parameters"]["relationship"],
+                            "image_data": image_data,
                         }
                     ),
                 )
+                print("request was made", res.json())
+                return res.json()
             except:
                 raise ValueError("got an error sending request")
 
@@ -360,15 +360,19 @@ image = modal.Image.debian_slim().pip_install("fastapi[standard]")
 app = modal.App("minimalist-anthropic-agent")
 
 # Define Modal image with required dependencies
-image = modal.Image.debian_slim(python_version="3.11").pip_install(
-    "anthropic",
-    "mcp",
-    "pydantic",
-    "fastapi",
-    "uvicorn",
-    "requests",
-    "openai-whisper",
-    "soundfile",
+image = (
+    modal.Image.debian_slim(python_version="3.11")
+    .pip_install(
+        "anthropic",
+        "mcp",
+        "pydantic",
+        "fastapi",
+        "uvicorn",
+        "requests",
+        "openai-whisper",
+        "soundfile",
+    )
+    .apt_install("ffmpeg")
 )
 
 
@@ -392,21 +396,18 @@ async def analyze_context_endpoint(context_data: dict):
         config = AgentConfig(anthropic_api_key=api_key)
         agent = MinimalistAgent(config)
 
-        # Initialize MCP tools if provided
-        mcp_servers = context_data.get("mcp_servers")
-        if mcp_servers:
-            await agent.initialize_mcp_tools(mcp_servers)
-
+        # Initialize MCP tools if provide
+        print(context_data, type(context_data))
         image_data = context_data.get("image_data")
         audio_data = context_data.get("audio_data")
-
+        print(image_data)
         # Process the context with optional image
         result = await agent.process_context(audio_data, image_data)
 
         # Add success status
         result["status"] = "success"
 
-        return result
+        return result["tool_result"]
 
     except Exception as e:
         return {"status": "error", "error": str(e)}

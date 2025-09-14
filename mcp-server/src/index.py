@@ -366,7 +366,7 @@ class PythonFaceRecognitionService:
                     "person": existing_person["name"],
                     "relationship": existing_person["relationship"],
                     "confidence": 0.8,  # Default confidence for database matches
-                    "color": existing_person.get("color", "#45B7D1"),  # Default blue hex
+                    "color": self._get_random_color(),  # Return random hex color instead of stored color
                     "is_new_person": False,
                     "message": f"Found existing person: {existing_person['name']} ({existing_person['relationship']})",
                 }

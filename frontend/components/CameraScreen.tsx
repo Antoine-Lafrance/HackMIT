@@ -42,6 +42,71 @@ export default function CameraScreen({ onClose, onDataCapture }: CameraScreenPro
         return R * c;
     };
 
+    // Task reminder checking function
+    const checkTaskReminders = async () => {
+        try {
+            const savedTasks = await AsyncStorage.getItem('tasks');
+            if (!savedTasks) return;
+
+            const tasks = JSON.parse(savedTasks);
+            const now = new Date();
+            const currentDate = now.toISOString().split('T')[0]; // YYYY-MM-DD format
+            const currentTime = now.toTimeString().split(':').slice(0, 2).join(':'); // HH:MM format
+
+            // Check for tasks that match current date and time (within 1 minute window)
+            const activeReminders = tasks.filter((task: any) => {
+                if (task.completed) return false;
+                
+                if (task.date === currentDate) {
+                    const taskTime = task.time;
+                    const taskDateTime = new Date(`${task.date} ${taskTime}`);
+                    const timeDiff = Math.abs(now.getTime() - taskDateTime.getTime());
+                    
+                    // Show reminder if within 1 minute of task time
+                    return timeDiff <= 60000; // 60 seconds
+                }
+                return false;
+            });
+
+            // Show alerts for active reminders
+            activeReminders.forEach((task: any) => {
+                Alert.alert(
+                    '⏰ Task Reminder',
+                    `It's time for: ${task.description}`,
+                    [
+                        {
+                            text: 'Mark Done',
+                            onPress: () => markTaskCompleted(task.id)
+                        },
+                        {
+                            text: 'Remind Later',
+                            style: 'cancel'
+                        }
+                    ]
+                );
+            });
+        } catch (error) {
+            console.error('Error checking task reminders:', error);
+        }
+    };
+
+    const markTaskCompleted = async (taskId: string) => {
+        try {
+            const savedTasks = await AsyncStorage.getItem('tasks');
+            if (!savedTasks) return;
+
+            const tasks = JSON.parse(savedTasks);
+            const updatedTasks = tasks.map((task: any) =>
+                task.id === taskId ? { ...task, completed: true } : task
+            );
+
+            await AsyncStorage.setItem('tasks', JSON.stringify(updatedTasks));
+            Alert.alert('✅ Task completed!');
+        } catch (error) {
+            console.error('Error marking task completed:', error);
+        }
+    };
+
     const loadHomeLocation = async () => {
         try {
             const savedHome = await AsyncStorage.getItem('homeLocation');
@@ -192,11 +257,9 @@ export default function CameraScreen({ onClose, onDataCapture }: CameraScreenPro
             );
             
             setRecording(recordingInstance);
-            console.log('Recording segment started - 3 second timer set');
-
             setTimeout(async () => {
                 await processRecordingSegment(recordingInstance);
-            }, 3000);
+            }, 10000);
 
         } catch (error) {
             // Retry after delay if still recording
@@ -214,7 +277,6 @@ export default function CameraScreen({ onClose, onDataCapture }: CameraScreenPro
             const uri = recordingInstance.getURI();
             
             if (uri) {
-                console.log('🎵 Audio segment saved:', uri);
                 const audioSegment = { uri, timestamp: new Date().toISOString() };
                 setAudioSegments(prev => {
                     const newSegments = [...prev, audioSegment];           
@@ -223,7 +285,25 @@ export default function CameraScreen({ onClose, onDataCapture }: CameraScreenPro
                         .catch(error => console.error('Failed to save audio segments:', error));
                     return newSegments;
                 });
+
+                setUploadStatus('Auto-uploading...');
+                try {
+                    const result = await uploadAudioSegment(uri, audioSegment.timestamp);
+                    if (result) {
+                        console.log(' Auto-upload successful');
+                        setUploadStatus('Upload complete');
+                    } else {
+                        console.log('Auto-upload failed');
+                        setUploadStatus('Upload failed');
+                    }
+                } catch (uploadError) {
+                    console.error('Auto-upload error:', uploadError);
+                    setUploadStatus('Upload error');
+                }
+                // Clear status after 3 seconds
+                setTimeout(() => setUploadStatus(''), 3000);
             }
+            
             if (isRecordingRef.current) {
                 startRecordingSegment();
             } else {
@@ -255,7 +335,7 @@ export default function CameraScreen({ onClose, onDataCapture }: CameraScreenPro
                 const savedAudio = await AsyncStorage.getItem('audioSegments');
                 if (savedAudio) {
                     const audioData = JSON.parse(savedAudio);
-                    console.log(`📂 Recording session ended. Total segments saved: ${audioData.length}`);
+                    console.log(`Recording session ended. Total segments saved: ${audioData.length}`);
                 } 
             } catch (storageError) {
                 console.error('Failed to read audio segments from storage:', storageError);
@@ -273,7 +353,7 @@ export default function CameraScreen({ onClose, onDataCapture }: CameraScreenPro
                 console.log('All recorded audio segments from storage:', audioData);
                 return audioData;
             } else {
-                console.log('📂 No audio segments found in storage');
+                console.log('No audio segments found in storage');
                 return [];
             }
         } catch (error) {
@@ -294,9 +374,7 @@ export default function CameraScreen({ onClose, onDataCapture }: CameraScreenPro
 
     // Function to convert audio file to base64
     const convertAudioToBase64 = async (audioUri: string): Promise<string | null> => {
-        try {
-            console.log('Converting audio to base64:', audioUri);
-            
+        try {            
             // Use fetch to read the file as blob
             const response = await fetch(audioUri);
             const blob = await response.blob();
@@ -337,7 +415,6 @@ export default function CameraScreen({ onClose, onDataCapture }: CameraScreenPro
                     });
                     photoUri = photo.uri;
                     photoBase64 = photo.base64;
-                    console.log('Photo captured:', photoUri);
                 } catch (photoError) {
                     console.error('Failed to capture photo:', photoError);
                 }
@@ -373,37 +450,6 @@ export default function CameraScreen({ onClose, onDataCapture }: CameraScreenPro
             }
         } catch (error) {
             console.error('Failed', error);
-            return null;
-        }
-    };
-
-    // Compress and upload latest audio
-    const compressAndUploadLatest = async () => {
-        try {
-            setUploadStatus('Finding latest audio');
-            const allSegments = await getAllAudioSegments();
-            if (allSegments.length === 0) {
-                setUploadStatus('No audio segments to upload');
-                setTimeout(() => setUploadStatus(''), 3000);
-                return;
-            }
-            
-            const latest = allSegments[allSegments.length - 1];
-            setUploadStatus('Uploading latest audio');
-            const result = await uploadAudioSegment(latest.uri, latest.timestamp);
-            
-            if (result) {
-                setUploadStatus(' Latest audio uploaded!');
-                console.log('Latest audio compressed and uploaded successfully');
-            } else {
-                setUploadStatus('Upload failed');
-            }
-            setTimeout(() => setUploadStatus(''), 3000);
-            return result;
-        } catch (error) {
-            console.error('Failed to compress and upload latest audio:', error);
-            setUploadStatus(' Upload error');
-            setTimeout(() => setUploadStatus(''), 3000);
             return null;
         }
     };
@@ -481,7 +527,7 @@ export default function CameraScreen({ onClose, onDataCapture }: CameraScreenPro
     }
 
     useEffect(() => {
-    console.log('🚀 CameraScreen useEffect started');
+    console.log('CameraScreen useEffect started');
     const lockOrientation = async () => {
         await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
     };
@@ -491,13 +537,18 @@ export default function CameraScreen({ onClose, onDataCapture }: CameraScreenPro
     loadHomeLocation();
     loadExistingAudioSegments();
     
-    console.log('🎤 About to start continuous audio recording...');
+    console.log('About to start continuous audio recording...');
     // Start continuous audio recording
     startContinuousRecording();
 
     const timeInterval = setInterval(() => {
         setCurrentTime(new Date().toLocaleTimeString());
     }, 1000);
+
+    // Check for task reminders every 10 seconds
+    const reminderInterval = setInterval(() => {
+        checkTaskReminders();
+    }, 10000);
 
     const getLocation = async () => {
         try {
@@ -537,6 +588,7 @@ export default function CameraScreen({ onClose, onDataCapture }: CameraScreenPro
         ScreenOrientation.unlockAsync();
         setIsAnalyzing(false);
         clearInterval(timeInterval);
+        clearInterval(reminderInterval);
         
         // Stop continuous recording when component unmounts
         stopContinuousRecording();
@@ -619,15 +671,6 @@ export default function CameraScreen({ onClose, onDataCapture }: CameraScreenPro
                 ) : null}
                 
                 <View style={styles.audioControlPanel}>
-                    
-                    <TouchableOpacity 
-                        style={[styles.audioButton, styles.uploadButton]}
-                        onPress={compressAndUploadLatest}
-                    >
-                        <Text style={styles.audioButtonText}>📤</Text>
-                    </TouchableOpacity>
-                    
-                    
                     <TouchableOpacity 
                         style={[styles.audioButton, styles.clearButton]}
                         onPress={clearAllAudioSegments}
@@ -818,12 +861,6 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     textAlign: 'center',
-  },
-  uploadButton: {
-    backgroundColor: 'rgba(0, 122, 255, 0.3)',
-  },
-  uploadAllButton: {
-    backgroundColor: 'rgba(52, 199, 89, 0.3)',
   },
   clearButton: {
     backgroundColor: 'rgba(255, 59, 48, 0.3)',

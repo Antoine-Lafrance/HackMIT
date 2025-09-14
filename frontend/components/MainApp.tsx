@@ -6,8 +6,9 @@ import AuthScreen from './AuthScreen';
 import HomePage from './HomePage';
 import CameraScreen from './CameraScreen';
 import SettingsScreen from './SettingsScreen';
+import TaskScreen from './TaskScreen';
 
-type Screen = 'auth' | 'home' | 'camera' | 'settings';
+type Screen = 'auth' | 'home' | 'camera' | 'settings' | 'tasks';
 
 export default function MainApp() {
     const [currentScreen, setCurrentScreen] = useState<Screen>('auth');
@@ -36,6 +37,10 @@ export default function MainApp() {
         setCurrentScreen('settings');
     };
 
+    const handleOpenTasks = () => {
+        setCurrentScreen('tasks');
+    };
+
     const handleBackToHome = () => {
         setCurrentScreen('home');
     };
@@ -45,11 +50,13 @@ export default function MainApp() {
         case 'auth':
             return <AuthScreen />;
         case 'home':
-            return <HomePage onOpenCamera={handleOpenCamera} onOpenSettings={handleOpenSettings} />;
+            return <HomePage onOpenCamera={handleOpenCamera} onOpenSettings={handleOpenSettings} onOpenTasks={handleOpenTasks} />;
         case 'camera':
             return <CameraScreen onClose={handleBackToHome} />;
         case 'settings':
             return <SettingsScreen onClose={handleBackToHome} />;
+        case 'tasks':
+            return <TaskScreen onClose={handleBackToHome} />;
         default:
             return <AuthScreen />;
         }

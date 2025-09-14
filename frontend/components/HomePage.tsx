@@ -9,9 +9,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 interface HomePageProps {
     onOpenCamera?: () => void;
     onOpenSettings?: () => void;
+    onOpenTasks?: () => void;
 }
 
-export default function HomePage({ onOpenCamera, onOpenSettings }: HomePageProps) {
+export default function HomePage({ onOpenCamera, onOpenSettings, onOpenTasks }: HomePageProps) {
 
     const playAudioSegment = async (uri: string) => {
         try {
@@ -192,14 +193,18 @@ return (
                 <Text style={styles.featureText}>Play Audio Recordings</Text>
                 </TouchableOpacity>
                 
+                <TouchableOpacity 
+                style={styles.featureItem}
+                onPress={onOpenTasks}
+                activeOpacity={0.7}
+                >
+                <Ionicons name="calendar-outline" size={24} color="white" />
+                <Text style={styles.featureText}>Manage Tasks</Text>
+                </TouchableOpacity>
+                
                 <View style={styles.featureItem}>
                 <Ionicons name="images-outline" size={24} color="white" />
                 <Text style={styles.featureText}>Weekly Review</Text>
-                </View>
-                
-                <View style={styles.featureItem}>
-                <Ionicons name="calendar-outline" size={24} color="white" />
-                <Text style={styles.featureText}>Task Upload</Text>
                 </View>
                 
                 <TouchableOpacity 

@@ -13,6 +13,7 @@ from typing import Dict, List, Any, Optional
 from dataclasses import dataclass
 from dotenv import load_dotenv
 from requests import get, post
+import requests
 import modal
 from anthropic import Anthropic
 from fastapi import File, UploadFile
@@ -250,7 +251,7 @@ examples for calling the TIMER tool:
                 # If agent wants to use tools, execute them
                 if decision.get("decision") == "use_tools":
                     decision["tool_results"] = await self.execute_tools(
-                        decision.get("tools_to_use", [])
+                        decision.get("tools_to_use", []), system_prompt, image_data
                     )
 
                 return decision
@@ -272,54 +273,43 @@ examples for calling the TIMER tool:
             }
 
     async def execute_tools(
-        self, tools_to_use: List[Dict[str, Any]]
+        self, tools_to_use: List[Dict[str, Any]], base_prompt: str, image_data: str
     ) -> List[Dict[str, Any]]:
         """Execute the requested MCP tools."""
         results = []
 
+        table = {
+            "ping": "https://antlaf6--mcp-ping-dev.modal.run",
+            "timer_endpoint": "https://antlaf6--mcp-timer-dev.modal.run",
+            "location_endpoint": "https://antlaf6--mcp-location-dev.modal.run",
+            "list_tools_endpoint": "https://antlaf6--mcp-list-tools-dev.modal.run",
+            "recognize_face": "https://antlaf6--mcp-face-recognition-dev.modal.run",
+            "health_endpoint": "https://antlaf6--mcp-health-dev.modal.run",
+        }
+
         for tool_request in tools_to_use:
-            tool_name = tool_request.get("tool_name")
-            parameters = tool_request.get("parameters", {})
+            logger.info(tool_request)
+            tool_url = table[tool_request["tool_name"]]
+
+            # get the args
+            args = self.anthropic.messages.create(
+                model=self.config.model,
+                max_tokens=self.config.max_tokens,
+                temperature=self.config.temperature,
+                system=f"here is a prompt a user asked for your tool call: ({base_prompt}), you are now tasked with sending the right args to this function call. just return the JSON of the parameters for this function call in a list, nothing else. Add nulls if youre not sure. Here is the structure i want: arguments:"
+                + "person_name"
+                + "person_relationship",
+                messages=[{"role": "user", "content": "your answer is..."}],
+            )
+
+            logger.info("hellooooo", args.content[0].text)
 
             # Find which server has this tool
-            tool_info = None
-            for tool in self.available_tools:
-                if tool["name"] == tool_name:
-                    tool_info = tool
-                    break
-
-            if not tool_info:
-                results.append(
-                    {
-                        "tool_name": tool_name,
-                        "status": "error",
-                        "error": f"Tool '{tool_name}' not found",
-                    }
-                )
-                continue
-
+            logger.info("calling tool", tool_url, " with args, ", args.content[0].text)
             try:
-                server_name = tool_info["server"]
-                session = self.mcp_sessions[server_name]
-
-                # Call the tool
-                result = await session.call_tool(tool_name, parameters)
-
-                results.append(
-                    {
-                        "tool_name": tool_name,
-                        "status": "success",
-                        "result": result.content,
-                    }
-                )
-
-                logger.info(f"Successfully executed tool: {tool_name}")
-
-            except Exception as e:
-                results.append(
-                    {"tool_name": tool_name, "status": "error", "error": str(e)}
-                )
-                logger.error(f"Error executing tool {tool_name}: {e}")
+                requests.post(tool_url, {"body": args.content[0].text})
+            except:
+                raise ValueError("got an error sending request")
 
         return results
 

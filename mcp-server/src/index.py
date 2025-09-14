@@ -692,7 +692,7 @@ async def handle_list_tools_info(args: Dict[str, Any]) -> CallToolResult:
     logger.info("Tools list info requested")
 
     # Define the base Modal URL (you might want to make this configurable)
-    modal_base_url = "https://antoinedoyen--dementia-aid-mcp-server-mcp-"
+    modal_base_url = ""
 
     tools_info = [
         {
@@ -705,9 +705,9 @@ async def handle_list_tools_info(args: Dict[str, Any]) -> CallToolResult:
                     "type": "string",
                     "description": "Message to echo back",
                     "required": False,
-                    "default": "Hello from MCP!"
+                    "default": "Hello from MCP!",
                 }
-            }
+            },
         },
         {
             "name": "recognize_face",
@@ -718,19 +718,19 @@ async def handle_list_tools_info(args: Dict[str, Any]) -> CallToolResult:
                 "image_data": {
                     "type": "string",
                     "description": "Base64 encoded image data",
-                    "required": True
+                    "required": True,
                 },
                 "person_name": {
                     "type": "string",
                     "description": "Name of the person (optional - if provided, will be used for new person creation)",
-                    "required": False
+                    "required": False,
                 },
                 "person_relationship": {
                     "type": "string",
                     "description": "Relationship to the person (optional - if provided, will be used for new person creation)",
-                    "required": False
-                }
-            }
+                    "required": False,
+                },
+            },
         },
         {
             "name": "manage_timer",
@@ -742,14 +742,14 @@ async def handle_list_tools_info(args: Dict[str, Any]) -> CallToolResult:
                     "type": "string",
                     "enum": ["set"],
                     "description": "Timer action",
-                    "required": True
+                    "required": True,
                 },
                 "duration_minutes": {
                     "type": "number",
                     "description": "Duration in minutes",
-                    "required": False
-                }
-            }
+                    "required": False,
+                },
+            },
         },
         {
             "name": "monitor_location",
@@ -761,17 +761,17 @@ async def handle_list_tools_info(args: Dict[str, Any]) -> CallToolResult:
                     "type": "string",
                     "enum": ["check_safety"],
                     "description": "Location action",
-                    "required": True
+                    "required": True,
                 }
-            }
+            },
         },
         {
             "name": "list_tools",
             "description": "List all available tools with their descriptions, arguments, and Modal endpoint URLs",
             "modal_endpoint": f"{modal_base_url}list-tools.modal.run",
             "method": "GET",
-            "arguments": {}
-        }
+            "arguments": {},
+        },
     ]
 
     response_data = {
@@ -780,7 +780,7 @@ async def handle_list_tools_info(args: Dict[str, Any]) -> CallToolResult:
         "total_tools": len(tools_info),
         "server": "dementia-aid-mcp-server",
         "timestamp": datetime.now().isoformat(),
-        "health_check_endpoint": f"{modal_base_url}health.modal.run"
+        "health_check_endpoint": f"{modal_base_url}health.modal.run",
     }
 
     return CallToolResult(
@@ -795,7 +795,13 @@ async def handle_list_tools_info(args: Dict[str, Any]) -> CallToolResult:
 async def handle_list_tools() -> List[Tool]:
     """Handle list tools requests"""
     logger.info("Tools list requested")
-    return [ping_tool, face_recognition_tool, timer_tool, location_tool, list_tools_tool]
+    return [
+        ping_tool,
+        face_recognition_tool,
+        timer_tool,
+        location_tool,
+        list_tools_tool,
+    ]
 
 
 @server.call_tool()
@@ -992,9 +998,9 @@ async def list_tools_endpoint():
                         "type": "string",
                         "description": "Message to echo back",
                         "required": False,
-                        "default": "Hello from MCP!"
+                        "default": "Hello from MCP!",
                     }
-                }
+                },
             },
             {
                 "name": "recognize_face",
@@ -1005,19 +1011,19 @@ async def list_tools_endpoint():
                     "image_data": {
                         "type": "string",
                         "description": "Base64 encoded image data",
-                        "required": True
+                        "required": True,
                     },
                     "person_name": {
                         "type": "string",
                         "description": "Name of the person (optional - if provided, will be used for new person creation)",
-                        "required": False
+                        "required": False,
                     },
                     "person_relationship": {
                         "type": "string",
                         "description": "Relationship to the person (optional - if provided, will be used for new person creation)",
-                        "required": False
-                    }
-                }
+                        "required": False,
+                    },
+                },
             },
             {
                 "name": "manage_timer",
@@ -1029,14 +1035,14 @@ async def list_tools_endpoint():
                         "type": "string",
                         "enum": ["set"],
                         "description": "Timer action",
-                        "required": True
+                        "required": True,
                     },
                     "duration_minutes": {
                         "type": "number",
                         "description": "Duration in minutes",
-                        "required": False
-                    }
-                }
+                        "required": False,
+                    },
+                },
             },
             {
                 "name": "monitor_location",
@@ -1048,17 +1054,17 @@ async def list_tools_endpoint():
                         "type": "string",
                         "enum": ["check_safety"],
                         "description": "Location action",
-                        "required": True
+                        "required": True,
                     }
-                }
+                },
             },
             {
                 "name": "list_tools",
                 "description": "List all available tools with their descriptions, arguments, and Modal endpoint URLs",
                 "modal_endpoint": f"{modal_base_url}list-tools.modal.run",
                 "method": "GET",
-                "arguments": {}
-            }
+                "arguments": {},
+            },
         ]
 
         response_data = {
@@ -1067,7 +1073,7 @@ async def list_tools_endpoint():
             "total_tools": len(tools_info),
             "server": "dementia-aid-mcp-server",
             "timestamp": datetime.now().isoformat(),
-            "health_check_endpoint": f"{modal_base_url}health.modal.run"
+            "health_check_endpoint": f"{modal_base_url}health.modal.run",
         }
 
         return response_data

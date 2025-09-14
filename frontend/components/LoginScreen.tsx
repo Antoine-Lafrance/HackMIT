@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../lib/supabase';
 
@@ -70,7 +70,14 @@ return (
         end={{ x: 0, y: 1 }}
     >
         <View style={styles.content}>
-        <Text style={styles.title}>Welcome</Text>
+        <View style={styles.logoContainer}>
+            <Image 
+                source={require('../assets/logo.webp')} 
+                style={styles.logo}
+                resizeMode="contain"
+            />
+        </View>
+        <Text style={styles.title}>Memento</Text>
         <Text style={styles.subtitle}>Sign in to your account</Text>
 
         <TextInput
@@ -128,6 +135,14 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         padding: 20,
+    },
+    logoContainer: {
+        alignItems: 'center',
+        marginBottom: 40,
+    },
+    logo: {
+        width: 120,
+        height: 120,
     },
     title: {
         fontSize: 32,

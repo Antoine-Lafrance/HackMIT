@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../lib/supabase';
 
@@ -71,7 +71,14 @@ export default function SignupScreen({ onNavigateToLogin }: SignupScreenProps) {
         end={{ x: 0, y: 1 }}
         >
             <View style={styles.content}>
-                <Text style={styles.title}>Create Account</Text>
+                <View style={styles.logoContainer}>
+                    <Image 
+                        source={require('../assets/logo.webp')} 
+                        style={styles.logo}
+                        resizeMode="contain"
+                    />
+                </View>
+                <Text style={styles.title}>Memento</Text>
                 <Text style={styles.subtitle}>Join us today</Text>
 
                 <TextInput
@@ -150,6 +157,14 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         padding: 20,
     },
+    logoContainer: {
+        alignItems: 'center',
+        marginBottom: 32,
+    },
+    logo: {
+        width: 120,
+        height: 120,
+    },
     title: {
         fontSize: 32,
         fontWeight: 'bold',
@@ -180,7 +195,7 @@ const styles = StyleSheet.create({
         marginBottom: 12,
     },
     signupButton: {
-        backgroundColor: 'rgba(52, 199, 89, 0.8)',
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
         borderWidth: 1,
         borderColor: 'rgba(255, 255, 255, 0.3)',
     },

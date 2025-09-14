@@ -154,18 +154,19 @@ return (
         end={{ x: 0, y: 1 }}
     >
         <View style={styles.content}>
+            <TouchableOpacity 
+                style={styles.settingsButton}
+                onPress={onOpenSettings}
+                activeOpacity={0.8}
+            >
+                <Ionicons name="settings-outline" size={24} color="white" />
+            </TouchableOpacity>
+            
             <View style={styles.header}>
                 <View style={styles.titleContainer}>
-                    <Text style={styles.title}>Welcome to Mementor</Text>
+                    <Text style={styles.title}>Mementor</Text>
                     <Text style={styles.subtitle}>Your aid to dementia</Text>
                 </View>
-                <TouchableOpacity 
-                    style={styles.settingsButton}
-                    onPress={onOpenSettings}
-                    activeOpacity={0.8}
-                >
-                    <Ionicons name="settings-outline" size={24} color="white" />
-                </TouchableOpacity>
             </View>
 
             <View style={styles.cameraSection}>
@@ -222,37 +223,37 @@ const styles = StyleSheet.create({
     content: {
         flex: 1,
         padding: 20,
-        paddingTop: 60,
+        paddingTop: 100,
     },
     header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'flex-start',
+        width: '100%',
+        alignItems: 'center',
         marginBottom: 40,
     },
-    titleContainer: {
-        flex: 1,
-    },
-    title: {
-        fontSize: 32,
-        fontWeight: 'bold',
-        textAlign: 'center',
-        marginBottom: 8,
-        color: '#fff',
-    },
-    subtitle: {
-        fontSize: 16,
-        textAlign: 'center',
-        marginBottom: 0,
-        color: '#ddd',
-    },
     settingsButton: {
+        position: 'absolute',
+        top: 60,
+        right: 20,
+        zIndex: 10,
         backgroundColor: 'rgba(255, 255, 255, 0.2)',
         borderWidth: 1,
         borderColor: 'rgba(255, 255, 255, 0.3)',
         borderRadius: 20,
         padding: 12,
-        marginTop: 5,
+    },
+    titleContainer: {
+        alignItems: 'center',
+    },
+    title: {
+        fontSize: 32,
+        fontWeight: 'bold',
+        marginBottom: 8,
+        color: '#fff',
+    },
+    subtitle: {
+        fontSize: 16,
+        marginBottom: 0,
+        color: '#ddd',
     },
     cameraSection: {
         alignItems: 'center',

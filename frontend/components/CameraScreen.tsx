@@ -360,7 +360,7 @@ export default function CameraScreen({ onClose, onDataCapture }: CameraScreenPro
             
             if (response.ok) {
                 const result = await response.json();
-                console.log('Success', result);
+                console.log('Success');
                 return result;
             } else {
                 let errorText = '';

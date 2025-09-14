@@ -92,10 +92,6 @@ const searchLocationAsHome = async () => {
         console.log('Geocoding address:', homeAddress); 
         
         let searchAddress = homeAddress;
-        // if (!homeAddress.toLowerCase().includes('cambridge') && !homeAddress.toLowerCase().includes('ma')) {
-        //     searchAddress = `${homeAddress}, Cambridge, MA, USA`;
-        //     console.log('Enhanced address for geocoding:', searchAddress); 
-        // }
         
         let geocode = await Location.geocodeAsync(searchAddress);
         

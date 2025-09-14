@@ -6,6 +6,7 @@ import * as ScreenOrientation from 'expo-screen-orientation';
 import * as Location from 'expo-location';
 import * as Contacts from 'expo-contacts';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Audio } from 'expo-av';
 
 interface CameraScreenProps {
     onClose?: () => void;
@@ -21,6 +22,12 @@ export default function CameraScreen({ onClose, onDataCapture }: CameraScreenPro
     const [address, setAddress] = useState<string>('Loading location...');
     const [homeLocation, setHomeLocation] = useState<{latitude: number, longitude: number} | null>(null);
     const [hasCheckedIfLost, setHasCheckedIfLost] = useState(false);
+    const [recording, setRecording] = useState<Audio.Recording | null>(null);
+    const [isRecording, setIsRecording] = useState(false);
+    const [audioSegments, setAudioSegments] = useState<{uri: string, timestamp: string}[]>([]);
+    const [uploadStatus, setUploadStatus] = useState<string>('');
+    
+    const isRecordingRef = useRef(false);
     const cameraRef = useRef<CameraView>(null);
 
     const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
@@ -46,6 +53,21 @@ export default function CameraScreen({ onClose, onDataCapture }: CameraScreenPro
             }
         } catch (error) {
             console.error('Error loading home location:', error);
+        }
+    };
+
+    const loadExistingAudioSegments = async () => {
+        try {
+            const savedAudio = await AsyncStorage.getItem('audioSegments');
+            if (savedAudio) {
+                const audioData = JSON.parse(savedAudio);
+                setAudioSegments(audioData);
+                console.log('Loaded existing audio segments:', audioData.length);
+            } else {
+                console.log('No existing audio segments found');
+            }
+        } catch (error) {
+            console.error('Error loading audio segments:', error);
         }
     };
 
@@ -145,7 +167,321 @@ export default function CameraScreen({ onClose, onDataCapture }: CameraScreenPro
         }
     };
 
+    const startContinuousRecording = async () => {
+        try {            
+            const { status } = await Audio.requestPermissionsAsync();
+            if (status !== 'granted') {
+                return;
+            }
+            await Audio.setAudioModeAsync({
+                allowsRecordingIOS: true,
+                playsInSilentModeIOS: true,
+            });
+            setIsRecording(true);
+            isRecordingRef.current = true;
+            startRecordingSegment();
+        } catch (error) {
+            console.error('Failed');
+        }
+    };
+
+    const startRecordingSegment = async () => {
+        try {
+            const { recording: recordingInstance } = await Audio.Recording.createAsync(
+                Audio.RecordingOptionsPresets.LOW_QUALITY
+            );
+            
+            setRecording(recordingInstance);
+            console.log('Recording segment started - 3 second timer set');
+
+            setTimeout(async () => {
+                await processRecordingSegment(recordingInstance);
+            }, 3000);
+
+        } catch (error) {
+            // Retry after delay if still recording
+            if (isRecordingRef.current) {
+                setTimeout(() => {
+                    startRecordingSegment();
+                }, 2000);
+            }
+        }
+    };
+
+    const processRecordingSegment = async (recordingInstance: Audio.Recording) => {
+        try {
+            await recordingInstance.stopAndUnloadAsync();
+            const uri = recordingInstance.getURI();
+            
+            if (uri) {
+                console.log('🎵 Audio segment saved:', uri);
+                const audioSegment = { uri, timestamp: new Date().toISOString() };
+                setAudioSegments(prev => {
+                    const newSegments = [...prev, audioSegment];           
+                    //Persist to async storage         
+                    AsyncStorage.setItem('audioSegments', JSON.stringify(newSegments))
+                        .catch(error => console.error('Failed to save audio segments:', error));
+                    return newSegments;
+                });
+            }
+            if (isRecordingRef.current) {
+                startRecordingSegment();
+            } else {
+                console.log('Stopped recording');
+            }
+        } catch (error) {
+            if (isRecordingRef.current) {
+                setTimeout(startRecordingSegment, 1000);
+            }
+        }
+    };
+
+    const stopContinuousRecording = async () => {
+        try {
+            console.log('Stopped recording');
+            setIsRecording(false);
+            isRecordingRef.current = false;
+            
+            if (recording) {
+                await recording.stopAndUnloadAsync();
+                setRecording(null);
+            }
+            
+            await Audio.setAudioModeAsync({
+                allowsRecordingIOS: false,
+            });
+            
+            try {
+                const savedAudio = await AsyncStorage.getItem('audioSegments');
+                if (savedAudio) {
+                    const audioData = JSON.parse(savedAudio);
+                    console.log(`📂 Recording session ended. Total segments saved: ${audioData.length}`);
+                } 
+            } catch (storageError) {
+                console.error('Failed to read audio segments from storage:', storageError);
+            }
+        } catch (error) {
+            console.error('Failed to stop recording:', error);
+        }
+    };
+
+    const getAllAudioSegments = async () => {
+        try {
+            const savedAudio = await AsyncStorage.getItem('audioSegments');
+            if (savedAudio) {
+                const audioData = JSON.parse(savedAudio);
+                console.log('All recorded audio segments from storage:', audioData);
+                return audioData;
+            } else {
+                console.log('📂 No audio segments found in storage');
+                return [];
+            }
+        } catch (error) {
+            console.error('Error loading audio segments:', error);
+            return [];
+        }
+    };
+
+    const clearAllAudioSegments = async () => {
+        try {
+            await AsyncStorage.removeItem('audioSegments');
+            setAudioSegments([]);
+            console.log('Delete');
+        } catch (error) {
+            console.error('Failed to clear audio segments:', error);
+        }
+    };
+
+    // Function to convert audio file to base64
+    const convertAudioToBase64 = async (audioUri: string): Promise<string | null> => {
+        try {
+            console.log('Converting audio to base64:', audioUri);
+            
+            // Use fetch to read the file as blob
+            const response = await fetch(audioUri);
+            const blob = await response.blob();
+            
+            // Convert blob to base64
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    if (reader.result) {
+                        const base64 = reader.result.toString().split(',')[1] || reader.result.toString();
+                        console.log('Audio converted to base64, length:', base64.length);
+                        resolve(base64);
+                    } else {
+                        reject(new Error('Failed to convert audio to base64'));
+                    }
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+            });
+        } catch (error) {
+            console.error('Failed to convert audio to base64:', error);
+            return null;
+        }
+    };
+    const uploadAudioSegment = async (audioUri: string, timestamp: string) => {
+        try {
+            console.log('Uploading audio segment and camera capture to agent');
+            // Capture photo from camera first
+            let photoUri = null;
+            let photoBase64 = null;
+            if (cameraRef.current) {
+                try {
+                    console.log('Capturing photo from camera');
+                    const photo = await cameraRef.current.takePictureAsync({
+                        quality: 0.7,
+                        base64: true,
+                        skipProcessing: true,
+                    });
+                    photoUri = photo.uri;
+                    photoBase64 = photo.base64;
+                    console.log('Photo captured:', photoUri);
+                } catch (photoError) {
+                    console.error('Failed to capture photo:', photoError);
+                }
+            }
+            
+            let audioBase64 = null;
+            if (audioUri) {
+                audioBase64 = await convertAudioToBase64(audioUri);
+            }
+            const response = await fetch('https://antlaf6--minimalist-anthropic-agent-analyze-context--81a139-dev.modal.run/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    image_data: photoBase64,
+                    audio_data: audioBase64
+                }),
+            });
+            
+            if (response.ok) {
+                const result = await response.json();
+                console.log('Success', result);
+                return result;
+            } else {
+                let errorText = '';
+                try {
+                    errorText = await response.text();
+                } catch (e) {
+                }
+                console.error('Failed', response.status, response.statusText, errorText);
+                return null;
+            }
+        } catch (error) {
+            console.error('Failed', error);
+            return null;
+        }
+    };
+
+    // Compress and upload latest audio
+    const compressAndUploadLatest = async () => {
+        try {
+            setUploadStatus('Finding latest audio');
+            const allSegments = await getAllAudioSegments();
+            if (allSegments.length === 0) {
+                setUploadStatus('No audio segments to upload');
+                setTimeout(() => setUploadStatus(''), 3000);
+                return;
+            }
+            
+            const latest = allSegments[allSegments.length - 1];
+            setUploadStatus('Uploading latest audio');
+            const result = await uploadAudioSegment(latest.uri, latest.timestamp);
+            
+            if (result) {
+                setUploadStatus(' Latest audio uploaded!');
+                console.log('Latest audio compressed and uploaded successfully');
+            } else {
+                setUploadStatus('Upload failed');
+            }
+            setTimeout(() => setUploadStatus(''), 3000);
+            return result;
+        } catch (error) {
+            console.error('Failed to compress and upload latest audio:', error);
+            setUploadStatus(' Upload error');
+            setTimeout(() => setUploadStatus(''), 3000);
+            return null;
+        }
+    };
+
+    // Quick access function for debugging
+    const logAllAudioSegments = async () => {
+        try {
+            const savedAudio = await AsyncStorage.getItem('audioSegments');
+            if (savedAudio) {
+                const audioData = JSON.parse(savedAudio);
+                console.log(' === AUDIO SEGMENTS SUMMARY ===');
+                console.log(`Total segments: ${audioData.length}`);
+                audioData.forEach((segment: {uri: string, timestamp: string}, index: number) => {
+                    console.log(` ${index + 1}. ${segment.uri} (${segment.timestamp})`);
+                });
+                console.log('=== END SUMMARY ===');
+                return audioData;
+            } else {
+                console.log(' No audio segments found in storage');
+                return [];
+            }
+        } catch (error) {
+            console.error('Error loading audio segments:', error);
+            return [];
+        }
+    };
+
+    // Function to play an audio segment
+    const playAudioSegment = async (uri: string) => {
+        try {
+            console.log('Playing audio:', uri);
+            const { sound } = await Audio.Sound.createAsync({ uri });
+            await sound.playAsync();
+            console.log('Audio playback started');
+            
+            // Clean up when done
+            sound.setOnPlaybackStatusUpdate((status) => {
+                if (status.isLoaded && status.didJustFinish) {
+                    sound.unloadAsync();
+                    console.log('Audio playback finished');
+                }
+            });
+        } catch (error) {
+            console.error('Failed to play audio:', error);
+        }
+    };
+
+    // Function to play the latest recorded audio
+    const playLatestAudio = async () => {
+        try {
+            const savedAudio = await AsyncStorage.getItem('audioSegments');
+            if (savedAudio) {
+                const audioData = JSON.parse(savedAudio);
+                if (audioData.length > 0) {
+                    const latest = audioData[audioData.length - 1];
+                    console.log('Playing latest audio segment...');
+                    await playAudioSegment(latest.uri);
+                } else {
+                    console.log('No audio segments to play');
+                }
+            } else {
+                console.log('No audio segments found');
+            }
+        } catch (error) {
+            console.error('Failed to play latest audio:', error);
+        }
+    };
+
+    // Expose function to global scope for easy testing
+    if (typeof global !== 'undefined') {
+        (global as any).logAllAudioSegments = logAllAudioSegments;
+        (global as any).clearAllAudioSegments = clearAllAudioSegments;
+        (global as any).playAudioSegment = playAudioSegment;
+        (global as any).playLatestAudio = playLatestAudio;
+    }
+
     useEffect(() => {
+    console.log('🚀 CameraScreen useEffect started');
     const lockOrientation = async () => {
         await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
     };
@@ -153,6 +489,11 @@ export default function CameraScreen({ onClose, onDataCapture }: CameraScreenPro
 
     setIsAnalyzing(true);
     loadHomeLocation();
+    loadExistingAudioSegments();
+    
+    console.log('🎤 About to start continuous audio recording...');
+    // Start continuous audio recording
+    startContinuousRecording();
 
     const timeInterval = setInterval(() => {
         setCurrentTime(new Date().toLocaleTimeString());
@@ -196,6 +537,9 @@ export default function CameraScreen({ onClose, onDataCapture }: CameraScreenPro
         ScreenOrientation.unlockAsync();
         setIsAnalyzing(false);
         clearInterval(timeInterval);
+        
+        // Stop continuous recording when component unmounts
+        stopContinuousRecording();
     };
     }, []);
 
@@ -258,6 +602,39 @@ export default function CameraScreen({ onClose, onDataCapture }: CameraScreenPro
                 <View style={styles.glassesInfo}>
                 <Text style={styles.glassesText}>Smart Glasses Mode</Text>
                 <Text style={styles.glassesSubtext}>Here are your surroundings</Text>
+                </View>
+                
+                <View style={styles.audioInfo}>
+                <View style={styles.audioStatus}>
+                    <View style={[styles.recordingDot, { backgroundColor: isRecording ? '#ff4444' : '#666666' }]} />
+                    <Text style={styles.audioStatusText}>
+                    {isRecording ? 'RECORDING' : 'AUDIO READY'}
+                    </Text>
+                </View>
+                
+                {uploadStatus ? (
+                    <View style={styles.uploadStatus}>
+                        <Text style={styles.uploadStatusText}>{uploadStatus}</Text>
+                    </View>
+                ) : null}
+                
+                <View style={styles.audioControlPanel}>
+                    
+                    <TouchableOpacity 
+                        style={[styles.audioButton, styles.uploadButton]}
+                        onPress={compressAndUploadLatest}
+                    >
+                        <Text style={styles.audioButtonText}>📤</Text>
+                    </TouchableOpacity>
+                    
+                    
+                    <TouchableOpacity 
+                        style={[styles.audioButton, styles.clearButton]}
+                        onPress={clearAllAudioSegments}
+                    >
+                        <Text style={styles.audioButtonText}>🗑️</Text>
+                    </TouchableOpacity>
+                </View>
                 </View>
             </View>
 
@@ -401,5 +778,67 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 16,
     fontWeight: '600',
+  },
+  audioInfo: {
+    alignItems: 'center',
+    marginTop: 15,
+  },
+  audioStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  recordingDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 8,
+  },
+  audioStatusText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  audioControlPanel: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 10,
+  },
+  audioButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 20,
+    padding: 8,
+    minWidth: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  audioButtonText: {
+    color: 'white',
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  uploadButton: {
+    backgroundColor: 'rgba(0, 122, 255, 0.3)',
+  },
+  uploadAllButton: {
+    backgroundColor: 'rgba(52, 199, 89, 0.3)',
+  },
+  clearButton: {
+    backgroundColor: 'rgba(255, 59, 48, 0.3)',
+  },
+  uploadStatus: {
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    borderRadius: 15,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    marginVertical: 5,
+  },
+  uploadStatusText: {
+    color: 'white',
+    fontSize: 11,
+    fontWeight: '500',
+    textAlign: 'center',
   },
 });

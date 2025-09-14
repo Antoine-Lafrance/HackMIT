@@ -3,6 +3,8 @@ import { View, Text, TouchableOpacity, StyleSheet, Alert, Linking } from 'react-
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as Contacts from 'expo-contacts';
+import { Audio } from 'expo-av';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface HomePageProps {
     onOpenCamera?: () => void;
@@ -11,15 +13,74 @@ interface HomePageProps {
 
 export default function HomePage({ onOpenCamera, onOpenSettings }: HomePageProps) {
 
-  const handleCameraPress = () => {
-    if (onOpenCamera) {
-      onOpenCamera();
-    } else {
-      Alert.alert('Camera', 'Camera functionality will be implemented here');
-    }
-  };
+    const playAudioSegment = async (uri: string) => {
+        try {
+            const { sound } = await Audio.Sound.createAsync({ uri });
+            await sound.playAsync();      
+            sound.setOnPlaybackStatusUpdate((status) => {
+                if (status.isLoaded && status.didJustFinish) {
+                    sound.unloadAsync();
+                }
+            });
+        } catch (error) {
+            Alert.alert('Error', 'Failed to play audio clip');
+        }
+    };
 
-  const handleContactCaretaker = async () => {
+    const playLatestAudio = async () => {
+        try {
+            const savedAudio = await AsyncStorage.getItem('audioSegments');
+            if (savedAudio) {
+                const audioData = JSON.parse(savedAudio);
+                if (audioData.length > 0) {
+                    const latest = audioData[audioData.length - 1];
+                    await playAudioSegment(latest.uri);
+                    Alert.alert('Audio', 'Playing latest recording...');
+                } else {
+                Alert.alert('No Audio', 'No audio recordings found');
+                }
+            } else {
+                Alert.alert('No Audio', 'No audio recordings found');
+            }
+        } catch (error) {
+            Alert.alert('Error', 'Failed to access audio recordings');
+        }
+    };
+
+    const showAllAudioSegments = async () => {
+    try {
+        const savedAudio = await AsyncStorage.getItem('audioSegments');
+        if (savedAudio) {
+            const audioData = JSON.parse(savedAudio);
+            if (audioData.length > 0) {
+                Alert.alert(
+                    'Audio Recordings',
+                    `You have ${audioData.length} audio recording(s). Play the latest one?`,
+                    [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Play Latest', onPress: playLatestAudio }
+                    ]
+                );
+            } else {
+            Alert.alert('No Audio', 'No audio recordings found');
+            }
+        } else {
+            Alert.alert('No Audio', 'No audio recordings found');
+        }
+    } catch (error) {
+        Alert.alert('Error', 'Failed to access audio recordings');
+    }
+};
+
+const handleCameraPress = () => {
+    if (onOpenCamera) {
+        onOpenCamera();
+    } else {
+        Alert.alert('Camera', 'Camera functionality will be implemented here');
+    }
+};
+
+const handleContactCaretaker = async () => {
     try {
         const { status } = await Contacts.requestPermissionsAsync();
       
@@ -120,6 +181,15 @@ return (
 
             <View style={styles.featuresSection}>
                 <Text style={styles.featuresTitle}>Features</Text>
+                
+                <TouchableOpacity 
+                style={styles.featureItem}
+                onPress={showAllAudioSegments}
+                activeOpacity={0.7}
+                >
+                <Ionicons name="play-circle-outline" size={24} color="white" />
+                <Text style={styles.featureText}>Play Audio Recordings</Text>
+                </TouchableOpacity>
                 
                 <View style={styles.featureItem}>
                 <Ionicons name="images-outline" size={24} color="white" />

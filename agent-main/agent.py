@@ -13,6 +13,9 @@ from dataclasses import dataclass
 from dotenv import load_dotenv
 import modal
 from anthropic import Anthropic
+from fastapi import File, UploadFile
+
+from typing import Annotated
 
 
 # Configure logging
@@ -200,7 +203,6 @@ examples for calling the TIMER tool:
                 temperature=self.config.temperature,
                 system=system_prompt,
                 messages=[{"role": "user", "content": message_content}],
-                thinking_mode="quick",
             )
 
             # Parse response
@@ -335,7 +337,9 @@ image = modal.Image.debian_slim(python_version="3.11").pip_install(
 
 @app.function(image=image, secrets=[modal.Secret.from_name("anthropic-api-key")])
 @modal.fastapi_endpoint(method="POST")
-async def analyze_context_endpoint(context_data: dict):
+async def analyze_context_endpoint(
+    context_data: dict, audio_file: Annotated[UploadFile, File()]
+):
     """
     Endpoint for analyzing context via HTTP POST.
 

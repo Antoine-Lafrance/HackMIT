@@ -90,7 +90,6 @@ def main():
     result4 = send_context_request(
         context4,
         image_path="./test_image.jpg",
-        ,
     )
     print(f"Response: {json.dumps(result4, indent=2)}\n")
 

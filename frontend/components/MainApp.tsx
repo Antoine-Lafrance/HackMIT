@@ -5,8 +5,9 @@ import { supabase } from '../lib/supabase';
 import AuthScreen from './AuthScreen';
 import HomePage from './HomePage';
 import CameraScreen from './CameraScreen';
+import SettingsScreen from './SettingsScreen';
 
-type Screen = 'auth' | 'home' | 'camera';
+type Screen = 'auth' | 'home' | 'camera' | 'settings';
 
 export default function MainApp() {
     const [currentScreen, setCurrentScreen] = useState<Screen>('auth');
@@ -29,7 +30,15 @@ export default function MainApp() {
         setCurrentScreen('camera');
     };
 
+    const handleOpenSettings = () => {
+        setCurrentScreen('settings');
+    };
+
     const handleCloseCamera = () => {
+        setCurrentScreen('home');
+    };
+
+    const handleCloseSettings = () => {
         setCurrentScreen('home');
     };
 
@@ -43,7 +52,7 @@ export default function MainApp() {
         case 'auth':
             return <AuthScreen />;
         case 'home':
-            return <HomePage onOpenCamera={handleOpenCamera} />;
+            return <HomePage onOpenCamera={handleOpenCamera} onOpenSettings={handleOpenSettings} />;
         case 'camera':
             return (
             <CameraScreen 
@@ -51,6 +60,8 @@ export default function MainApp() {
                 onDataCapture={handleDataCapture}
             />
             );
+        case 'settings':
+            return <SettingsScreen onClose={handleCloseSettings} />;
         default:
             return <AuthScreen />;
         }

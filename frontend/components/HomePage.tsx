@@ -6,9 +6,10 @@ import * as Contacts from 'expo-contacts';
 
 interface HomePageProps {
     onOpenCamera?: () => void;
+    onOpenSettings?: () => void;
 }
 
-export default function HomePage({ onOpenCamera }: HomePageProps) {
+export default function HomePage({ onOpenCamera, onOpenSettings }: HomePageProps) {
 
   const handleCameraPress = () => {
     if (onOpenCamera) {
@@ -92,8 +93,19 @@ return (
         end={{ x: 0, y: 1 }}
     >
         <View style={styles.content}>
-            <Text style={styles.title}>Welcome to Mementor</Text>
-            <Text style={styles.subtitle}>Your aid to dementia</Text>
+            <View style={styles.header}>
+                <View style={styles.titleContainer}>
+                    <Text style={styles.title}>Welcome to Mementor</Text>
+                    <Text style={styles.subtitle}>Your aid to dementia</Text>
+                </View>
+                <TouchableOpacity 
+                    style={styles.settingsButton}
+                    onPress={onOpenSettings}
+                    activeOpacity={0.8}
+                >
+                    <Ionicons name="settings-outline" size={24} color="white" />
+                </TouchableOpacity>
+            </View>
 
             <View style={styles.cameraSection}>
                 <TouchableOpacity 
@@ -115,7 +127,7 @@ return (
                 </View>
                 
                 <View style={styles.featureItem}>
-                <Ionicons name="heart-outline" size={24} color="white" />
+                <Ionicons name="calendar-outline" size={24} color="white" />
                 <Text style={styles.featureText}>Task Upload</Text>
                 </View>
                 
@@ -142,6 +154,15 @@ const styles = StyleSheet.create({
         padding: 20,
         paddingTop: 60,
     },
+    header: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        marginBottom: 40,
+    },
+    titleContainer: {
+        flex: 1,
+    },
     title: {
         fontSize: 32,
         fontWeight: 'bold',
@@ -152,8 +173,16 @@ const styles = StyleSheet.create({
     subtitle: {
         fontSize: 16,
         textAlign: 'center',
-        marginBottom: 40,
+        marginBottom: 0,
         color: '#ddd',
+    },
+    settingsButton: {
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.3)',
+        borderRadius: 20,
+        padding: 12,
+        marginTop: 5,
     },
     cameraSection: {
         alignItems: 'center',

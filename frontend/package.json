@@ -9,11 +9,13 @@
     "web": "expo start --web"
   },
   "dependencies": {
+    "@react-native-async-storage/async-storage": "^2.2.0",
     "@supabase/supabase-js": "^2.57.4",
     "expo": "~54.0.6",
     "expo-camera": "^17.0.7",
     "expo-contacts": "^15.0.8",
     "expo-linear-gradient": "^15.0.7",
+    "expo-location": "^19.0.7",
     "expo-screen-orientation": "^9.0.7",
     "expo-status-bar": "~3.0.8",
     "react": "19.1.0",

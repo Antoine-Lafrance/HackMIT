@@ -4,8 +4,9 @@ import { User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import AuthScreen from './AuthScreen';
 import HomePage from './HomePage';
+import CameraScreen from './CameraScreen';
 
-type Screen = 'auth' | 'home';
+type Screen = 'auth' | 'home' | 'camera';
 
 export default function MainApp() {
     const [currentScreen, setCurrentScreen] = useState<Screen>('auth');
@@ -26,12 +27,22 @@ export default function MainApp() {
 
     // Face recognition is handled by agent system - no frontend needed
 
+    const handleOpenCamera = () => {
+        setCurrentScreen('camera');
+    };
+
+    const handleBackToHome = () => {
+        setCurrentScreen('home');
+    };
+
     const renderScreen = () => {
         switch (currentScreen) {
         case 'auth':
             return <AuthScreen />;
         case 'home':
-            return <HomePage />;
+            return <HomePage onOpenCamera={handleOpenCamera} />;
+        case 'camera':
+            return <CameraScreen onClose={handleBackToHome} />;
         default:
             return <AuthScreen />;
         }

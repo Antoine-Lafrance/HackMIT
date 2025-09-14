@@ -26,6 +26,7 @@ export default function CameraScreen({ onClose, onDataCapture }: CameraScreenPro
     const [isRecording, setIsRecording] = useState(false);
     const [audioSegments, setAudioSegments] = useState<{uri: string, timestamp: string}[]>([]);
     const [uploadStatus, setUploadStatus] = useState<string>('');
+    const [shownReminders, setShownReminders] = useState<Set<string>>(new Set());
     
     const isRecordingRef = useRef(false);
     const cameraRef = useRef<CameraView>(null);
@@ -68,26 +69,87 @@ export default function CameraScreen({ onClose, onDataCapture }: CameraScreenPro
                 return false;
             });
 
-            // Show alerts for active reminders
-            activeReminders.forEach((task: any) => {
-                Alert.alert(
-                    '⏰ Task Reminder',
-                    `It's time for: ${task.description}`,
-                    [
-                        {
-                            text: 'Mark Done',
-                            onPress: () => markTaskCompleted(task.id)
-                        },
-                        {
-                            text: 'Remind Later',
-                            style: 'cancel'
-                        }
-                    ]
-                );
-            });
+            // Process each active reminder through LLM (only if not already shown)
+            for (const task of activeReminders) {
+                const reminderKey = `${task.id}-${currentDate}-${task.time}`;
+                
+                if (!shownReminders.has(reminderKey)) {
+                    console.log('Showing new reminder for task:', task.description);
+                    const simplePrompt = await getTaskPromptFromLLM(task.description);
+                    showTaskReminder(task, simplePrompt);
+                    
+                    // Mark this reminder as shown
+                    setShownReminders(prev => new Set(prev).add(reminderKey));
+                } else {
+                    console.log('Reminder already shown for task:', task.description);
+                }
+            }
         } catch (error) {
             console.error('Error checking task reminders:', error);
         }
+    };
+
+    const getTaskPromptFromLLM = async (taskDescription: string): Promise<string> => {
+        try {
+            console.log('Getting simple prompt for task:', taskDescription);
+            
+            // For security, you should store your API key in environment variables
+            // or use a backend service to make the API call
+            const API_KEY = process.env.EXPO_PUBLIC_ANTHROPIC_API_KEY || 'YOUR_ANTHROPIC_API_KEY';
+            
+            if (API_KEY === 'YOUR_ANTHROPIC_API_KEY') {
+                console.warn('Anthropic API key not configured, using fallback');
+                return `Time for: ${taskDescription}`;
+            }
+
+            const response = await fetch('https://api.anthropic.com/v1/messages', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': API_KEY,
+                    'anthropic-version': '2023-06-01'
+                },
+                body: JSON.stringify({
+                    model: 'claude-3-haiku-20240307',
+                    max_tokens: 150,
+                    messages: [{
+                        role: 'user',
+                        content: `Convert this task to simple step by step instructions for someone with dementia. Task: "${taskDescription}. Keep under 150 tokens."`
+                    }]
+                }),
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                const prompt = result.content[0].text.trim();
+                console.log('LLM generated prompt:', prompt);
+                return prompt;
+            } else {
+                const errorText = await response.text();
+                console.error('LLM API error:', response.status, errorText);
+                return `Time for: ${taskDescription}`; // Fallback
+            }
+        } catch (error) {
+            console.error('Error calling LLM:', error);
+            return `Time for: ${taskDescription}`; // Fallback
+        }
+    };
+
+    const showTaskReminder = (task: any, prompt: string) => {
+        Alert.alert(
+            '⏰ Task Reminder',
+            prompt,
+            [
+                {
+                    text: 'Mark Done',
+                    onPress: () => markTaskCompleted(task.id)
+                },
+                {
+                    text: 'Remind Later',
+                    style: 'cancel'
+                }
+            ]
+        );
     };
 
     const markTaskCompleted = async (taskId: string) => {
@@ -101,6 +163,19 @@ export default function CameraScreen({ onClose, onDataCapture }: CameraScreenPro
             );
 
             await AsyncStorage.setItem('tasks', JSON.stringify(updatedTasks));
+            
+            // Clear any shown reminders for this task
+            setShownReminders(prev => {
+                const newSet = new Set(prev);
+                // Remove all reminder keys for this task ID
+                for (const key of newSet) {
+                    if (key.startsWith(`${taskId}-`)) {
+                        newSet.delete(key);
+                    }
+                }
+                return newSet;
+            });
+            
             Alert.alert('✅ Task completed!');
         } catch (error) {
             console.error('Error marking task completed:', error);
@@ -437,7 +512,7 @@ export default function CameraScreen({ onClose, onDataCapture }: CameraScreenPro
             
             if (response.ok) {
                 const result = await response.json();
-                console.log('Success');
+                console.log('Success', result);
                 return result;
             } else {
                 let errorText = '';

@@ -1,5 +1,4 @@
 # Mementor 
-<img width="502" height="239" alt="Screenshot 2025-09-17 at 10 48 31 AM" src="https://github.com/user-attachments/assets/29fdf5df-660b-4ad8-9a5b-2f2dfe2836c4" />
 
 An assistive AI app for dementia care. Mementor combines smart-glasses style UI, on-device cues, and backend face recognition so users can recognize people, stay safe, and follow simple task prompts.
 
@@ -14,7 +13,7 @@ An assistive AI app for dementia care. Mementor combines smart-glasses style UI,
 	<img alt="OpenCV" src="https://img.shields.io/badge/OpenCV-5C3EE8?style=for-the-badge&logo=opencv&logoColor=white" />
 	<img alt="Node.js" src="https://img.shields.io/badge/Node.js-43853D?style=for-the-badge&logo=node.js&logoColor=white" />
 	<img alt="Supabase" src="https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white" />
-	<img alt="Claude" src="https://img.shields.io/badge/Claude%20-000000?style=for-the-badge&logoColor=white" />
+	<img alt="Claude" src="https://img.shields.io/badge/Claude%20(Anthropic)-000000?style=for-the-badge&logoColor=white" />
 </p>
 
 ## Key Features

@@ -1,8 +1,8 @@
-# Mementor 
+# 👓Mementor 
 
 An assistive AI app for dementia care. Mementor combines smart-glasses style UI, on-device cues, and backend face recognition so users can recognize people, stay safe, and follow simple task prompts.
 
-## Tech Stack
+## 💻Tech Stack
 
 <p align="left">
 	<img alt="React Native" src="https://img.shields.io/badge/React%20Native-20232A?style=for-the-badge&logo=react&logoColor=61DAFB" />
@@ -16,7 +16,7 @@ An assistive AI app for dementia care. Mementor combines smart-glasses style UI,
 	<img alt="Claude" src="https://img.shields.io/badge/Claude%20(Anthropic)-000000?style=for-the-badge&logoColor=white" />
 </p>
 
-## Key Features
+## 🔑Key Features
 
 - Smart Glasses Camera UI (Expo/React Native)
 	- Landscape camera overlay with status, time, location
@@ -30,7 +30,7 @@ An assistive AI app for dementia care. Mementor combines smart-glasses style UI,
 - Safety and Care
 	- "Are you lost?" alert if the user strays >1km from a saved home location, with quick actions to call caretaker or get directions home
 
-## Monorepo Structure
+## 🛠️Monorepo Structure
 
 ```
 HackMIT/

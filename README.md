@@ -1,4 +1,5 @@
-# Mementor (HackMIT)
+# Mementor 
+<img width="502" height="239" alt="Screenshot 2025-09-17 at 10 48 31 AM" src="https://github.com/user-attachments/assets/29fdf5df-660b-4ad8-9a5b-2f2dfe2836c4" />
 
 An assistive AI app for dementia care. Mementor combines smart-glasses style UI, on-device cues, and backend face recognition so users can recognize people, stay safe, and follow simple task prompts.
 
@@ -133,5 +134,4 @@ In case of backend errors, the app logs them and can fall back to demo data for 
 - Add a few tasks with different times to showcase reminders
 - Use a known face image to show recognition result (name/relationship/border)
 
-## License
-MIT (add your actual license as needed)
+

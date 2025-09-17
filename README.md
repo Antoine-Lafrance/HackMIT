@@ -3,6 +3,20 @@
 
 An assistive AI app for dementia care. Mementor combines smart-glasses style UI, on-device cues, and backend face recognition so users can recognize people, stay safe, and follow simple task prompts.
 
+## Tech Stack
+
+<p align="left">
+	<img alt="React Native" src="https://img.shields.io/badge/React%20Native-20232A?style=for-the-badge&logo=react&logoColor=61DAFB" />
+	<img alt="Expo" src="https://img.shields.io/badge/Expo-000020?style=for-the-badge&logo=expo&logoColor=white" />
+	<img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white" />
+	<img alt="Python" src="https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white" />
+	<img alt="FastAPI" src="https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white" />
+	<img alt="OpenCV" src="https://img.shields.io/badge/OpenCV-5C3EE8?style=for-the-badge&logo=opencv&logoColor=white" />
+	<img alt="Node.js" src="https://img.shields.io/badge/Node.js-43853D?style=for-the-badge&logo=node.js&logoColor=white" />
+	<img alt="Supabase" src="https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white" />
+	<img alt="Claude" src="https://img.shields.io/badge/Claude%20-000000?style=for-the-badge&logoColor=white" />
+</p>
+
 ## Key Features
 
 - Smart Glasses Camera UI (Expo/React Native)

@@ -58,7 +58,6 @@ export default function CameraScreen({ onClose, onDataCapture }: CameraScreenPro
             const currentDate = now.toISOString().split('T')[0]; // YYYY-MM-DD format
             const currentTime = now.toTimeString().split(':').slice(0, 2).join(':'); // HH:MM format
 
-            // Check for tasks that match current date and time (within 1 minute window)
             const activeReminders = tasks.filter((task: any) => {
                 if (task.completed) return false;
                 
@@ -67,13 +66,11 @@ export default function CameraScreen({ onClose, onDataCapture }: CameraScreenPro
                     const taskDateTime = new Date(`${task.date} ${taskTime}`);
                     const timeDiff = Math.abs(now.getTime() - taskDateTime.getTime());
                     
-                    // Show reminder if within 1 minute of task time
                     return timeDiff <= 60000; // 60 seconds
                 }
                 return false;
             });
 
-            // Process each active reminder through LLM (only if not already shown)
             for (const task of activeReminders) {
                 const reminderKey = `${task.id}-${currentDate}-${task.time}`;
                 
@@ -95,13 +92,9 @@ export default function CameraScreen({ onClose, onDataCapture }: CameraScreenPro
 
     const getTaskPromptFromLLM = async (taskDescription: string): Promise<string> => {
         try {
-            console.log('Getting simple prompt for task:', taskDescription);
+            const API_KEY = process.env.EXPO_PUBLIC_ANTHROPIC_API_KEY;
             
-            // For security, you should store your API key in environment variables
-            // or use a backend service to make the API call
-            const API_KEY = process.env.EXPO_PUBLIC_ANTHROPIC_API_KEY || 'YOUR_ANTHROPIC_API_KEY';
-            
-            if (API_KEY === 'YOUR_ANTHROPIC_API_KEY') {
+            if (API_KEY === 'ANTHROPIC_API_KEY') {
                 console.warn('Anthropic API key not configured, using fallback');
                 return `Time for: ${taskDescription}`;
             }
@@ -132,8 +125,6 @@ export default function CameraScreen({ onClose, onDataCapture }: CameraScreenPro
                 if (prompt.length > 200) {
                     prompt = prompt.substring(0, 200) + '...';
                 }
-                
-                console.log('LLM generated prompt:', prompt);
                 return prompt;
             } else {
                 const errorText = await response.text();
@@ -190,7 +181,6 @@ export default function CameraScreen({ onClose, onDataCapture }: CameraScreenPro
                 }
                 return newSet;
             });
-            
             Alert.alert('✅ Task completed!');
         } catch (error) {
             console.error('Error marking task completed:', error);
@@ -465,7 +455,6 @@ export default function CameraScreen({ onClose, onDataCapture }: CameraScreenPro
     // Function to convert audio file to base64
     const convertAudioToBase64 = async (audioUri: string): Promise<string | null> => {
         try {            
-            // Use fetch to read the file as blob
             const response = await fetch(audioUri);
             const blob = await response.blob();
             
@@ -528,39 +517,6 @@ export default function CameraScreen({ onClose, onDataCapture }: CameraScreenPro
             if (response.ok) {
                 const result = await response.json();
                 console.log('Success', result);
-                
-                // Check if the response contains an error
-                if (result && (result.status === 'error') || result.) {
-                    console.error('API returned error:', result.error);
-                    
-                    // For demo purposes, simulate a successful response when backend has errors
-                    if (result.error.includes('tool_result') || result.error.includes('str') || result.error.includes('get')) {
-                        console.log('Backend error detected, using demo data for testing...');
-                        // Set demo person data for testing UI
-                        setPersonName('Demo');
-                        setPersonRelationship('Friend');
-                        setBorderColor('#800080');
-                    }
-                    
-                    return null;
-                }
-                
-                // Parse the person recognition data if available and successful
-                if (result && typeof result === 'object' && result.success) {
-                    if (result.person) {
-                        setPersonName(result.person);
-                    }
-                    if (result.relationship) {
-                        setPersonRelationship(result.relationship);
-                    }
-                    if (result.color) {
-                        setBorderColor(result.color);
-                    }
-                } else {
-                    // Clear previous person data if no valid recognition result
-                    console.log('No person recognition data or unsuccessful response');
-                }
-                
                 return result;
             } else {
                 let errorText = '';
@@ -808,23 +764,6 @@ export default function CameraScreen({ onClose, onDataCapture }: CameraScreenPro
                 <View style={styles.crosshairHorizontal} />
                 <View style={styles.crosshairVertical} />
             </View>
-
-            {/* Person Recognition Display */}
-            {(personName || personRelationship) && (
-                <View style={styles.personInfoContainer}>
-                    <View style={styles.personInfoCard}>
-                        {personName && (
-                            <Text style={styles.personName}>{personName}</Text>
-                        )}
-                        {personRelationship && (
-                            <Text style={styles.personRelationship}>{personRelationship}</Text>
-                        )}
-                    </View>
-                </View>
-            )}
-
-            {/* Color Border */}
-            <View style={[styles.colorBorder, { borderColor: borderColor }]} />
             </CameraView>
         </View>
     );
@@ -1017,45 +956,5 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '500',
     textAlign: 'center',
-  },
-  personInfoContainer: {
-    position: 'absolute',
-    top: '50%',
-    right: 20,
-    transform: [{ translateY: -50 }],
-    zIndex: 10,
-  },
-  personInfoCard: {
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    borderRadius: 12,
-    padding: 16,
-    minWidth: 150,
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  personName: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 4,
-  },
-  personRelationship: {
-    color: '#4CAF50',
-    fontSize: 14,
-    fontWeight: '600',
-    textAlign: 'center',
-    textTransform: 'capitalize',
-  },
-  colorBorder: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    borderWidth: 4,
-    borderRadius: 0,
-    pointerEvents: 'none',
   },
 });

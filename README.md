@@ -30,8 +30,8 @@ An assistive AI app for dementia care. Mementor combines smart-glasses style UI,
 - Safety and Care
 	- "Are you lost?" alert if the user strays >1km from a saved home location, with quick actions to call caretaker or get directions home
 
- <img width="471" height="203" alt="Screenshot 2025-09-23 at 9 43 59 PM" src="https://github.com/user-attachments/assets/d99de345-fe47-44ec-b1f3-cb220bfddb66" />
- Check out our slide deck: [https://docs.google.com/presentation/d/15DfLmtCiV6k9NrEOcIAQf_5hdCcV5W4XxeaW9ZBsfbw/edit?slide=id.gf04aff5e11_8_183#slide=id.gf04aff5e11_8_183](Mementor)
+ <img width="500" height="500" alt="Screenshot 2025-09-23 at 9 43 59 PM" src="https://github.com/user-attachments/assets/d99de345-fe47-44ec-b1f3-cb220bfddb66" />
+-  Check out our slide deck: [https://docs.google.com/presentation/d/15DfLmtCiV6k9NrEOcIAQf_5hdCcV5W4XxeaW9ZBsfbw/edit?slide=id.gf04aff5e11_8_183#slide=id.gf04aff5e11_8_183](Mementor)
 
 
 ## 🛠️Monorepo Structure
